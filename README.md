@@ -5,6 +5,7 @@ This program supports videos on the following websites :
 - xvideos.com
 - porn5f.com
 - 85tube.com
+- tktube.com
 
 # Specification
 - Urls are able to read from file or keyboard.
@@ -19,6 +20,11 @@ This program supports videos on the following websites :
 - Software
   - Linux based OS
   - Python 3
+  - Python 3 Library - Selenium (web browser driver)
+  - Web Browser
+
+Please install appropriate web browser and driver for selenium(python library).
+You can get reference from [selenium website](https://pypi.org/project/selenium/).
 
 *Note : This program may run on Windows by modifying some codes.*
 
@@ -36,6 +42,10 @@ Then, follow the instructions to choose a created directory for saving downloade
 Finally, input the video urls from file or keyboard.
 
 # Changelog
+- 06 / 25 2021
+  - Add support for tktube.com .
+  - Add module support for this library.
+
 - 04 / 25 2021
   - Handle url reset error.
 

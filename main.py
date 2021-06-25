@@ -8,13 +8,15 @@ from os import popen
 from urllib import request
 from urllib import error
 import requests
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
 from math import ceil
 
 """ Define constant """
 kMaxFilenameLength = 95
 
 
-def getTerminalSize():
+def getTerminalSize() -> dict:
 
     (rows, cols) = popen('stty size').read().split()
     rows = int(rows)
@@ -23,18 +25,17 @@ def getTerminalSize():
     return {'row': rows, 'col': cols}
 
 
-def fetchString(str, startIndex, endDelimiter):
+def fetchString(str: str, startIndex: int, endDelimiter: str) -> str:
 
     endIndex = str.find(endDelimiter, startIndex+1)
 
     return str[startIndex:endIndex]
 
 
-def retrieveSourceCode(url):
+def retrieveSourceCode(url: str) -> str:
 
     req = request.Request(url)
-    req.add_header(
-        'User-Agent', 'Mozilla/5.0 (X11; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0')
+    req.add_header('User-Agent', 'Mozilla/5.0 (X11; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0')
 
     try:
         sourceCode = request.urlopen(req).read().decode('utf-8')
@@ -44,7 +45,24 @@ def retrieveSourceCode(url):
     return sourceCode
 
 
-def get_85tube_videoUrl(url):
+def retrieveSourceCodeWithJs(url: str) -> str:
+
+    firefoxOptions = webdriver.FirefoxOptions()
+    firefoxOptions.add_argument('-headless')
+
+    firefox = webdriver.Firefox(options=firefoxOptions)
+    firefox.get(url)
+    sourceCode = firefox.page_source
+
+    firefox.close()
+
+    if path.isfile('geckodriver.log'):
+        remove('geckodriver.log')
+
+    return sourceCode
+
+
+def get_85tube_videoUrl(url: str) -> str:
 
     sourceCode = retrieveSourceCode(url)
     pos = sourceCode.find('video_url')
@@ -57,7 +75,7 @@ def get_85tube_videoUrl(url):
     return videoUrl
 
 
-def get_porn5f_videoUrl(url):
+def get_porn5f_videoUrl(url: str) -> str:
 
     sourceCode = retrieveSourceCode(url)
     pos = sourceCode.find('source src="')
@@ -70,7 +88,7 @@ def get_porn5f_videoUrl(url):
     return videoUrl
 
 
-def get_xvideos_videoUrl(url):
+def get_xvideos_videoUrl(url: str) -> str:
 
     sourceCode = retrieveSourceCode(url)
     pos = sourceCode.find('html5player.setVideoUrlHigh')
@@ -83,7 +101,21 @@ def get_xvideos_videoUrl(url):
     return videoUrl
 
 
-def formatFilename(filename):
+def get_tktube_videoUrl(url: str) -> str:
+
+    sourceCode = retrieveSourceCodeWithJs(url)
+
+    pos = sourceCode.find('src="https://tktube.com/get_file')
+
+    if pos != -1:
+        videoUrl = fetchString(sourceCode, pos + 5, '"')
+    else:
+        videoUrl = ''
+
+    return videoUrl
+
+
+def formatFilename(filename: str) -> str:
 
     # Remove html entities.
     while True:
@@ -140,7 +172,7 @@ def formatFilename(filename):
     return filename
 
 
-def getWebsiteTitle(url):
+def getWebsiteTitle(url: str) -> str:
 
     sourceCode = retrieveSourceCode(url)
     startIndex = sourceCode.find("<title>")
@@ -157,7 +189,7 @@ def getWebsiteTitle(url):
             return sourceCode[startIndex:endingIndex]
 
 
-def getUniqueFilename(directory, name, extName):
+def getUniqueFilename(directory: str, name: str, extName: str) -> str:
 
     if len(directory + name) > kMaxFilenameLength:
         name = name[0: (kMaxFilenameLength-len(directory))]
@@ -172,7 +204,7 @@ def getUniqueFilename(directory, name, extName):
     return name
 
 
-def getReadableSize(byteSize):
+def getReadableSize(byteSize: int) -> str:
 
     kSizeName = ('B', 'KB', 'MB', 'GB', 'TB')
     level = 0
@@ -190,7 +222,7 @@ def getReadableSize(byteSize):
     return (str(byteSize) + ' ' + kSizeName[level])
 
 
-def downloadFile(url, filename, showProgress):
+def downloadFile(url: str, filename: str, showProgress: bool) -> bool:
 
     kHeaders = {
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0'}
@@ -204,7 +236,7 @@ def downloadFile(url, filename, showProgress):
 
     else:
         # Download file.
-        req = requests.get(url, stream=True, headers=kHeaders)
+        req = requests.get(url, stream=True, headers=kHeaders, verify=False)
         contentBytes = req.headers.get('content-length')
         dlBytes = 0
         sliceBytes = 4096
@@ -258,7 +290,7 @@ def downloadFile(url, filename, showProgress):
             return False
 
 
-def playlistToMp4(input, output):
+def playlistToMp4(input: str, output: str) -> bool:
 
     system("ffmpeg -loglevel quiet -protocol_whitelist file,crypto,data,http,https,tls,tcp -i '{}' '{}' ".format(input, output))
 
@@ -276,7 +308,7 @@ def playlistToMp4(input, output):
         return False
 
 
-def playlistToTs(input, output, showProgress):
+def playlistToTs(input: str, output: str, showProgress: bool) -> bool:
 
     urls = []
 
@@ -348,172 +380,180 @@ class BashColor:
 
 """ Main """
 
-print('+------------------------------+')
-print('|                              |')
-print('|  ' + BashColor.kRed + 'Porn Video Downloader' +
-      BashColor.kClear + '       |')
-print('|                              |')
-print('+------------------------------+')
-print('|  ' + BashColor.kGreen + 'Supported Sites :' +
-      BashColor.kClear + '           |')
-print('|    https://85tube.com/       |')
-print('|    https://porn5f.com/       |')
-print('|    https://xvideos.com/      |')
-print('+------------------------------+')
+if __name__ == '__main__':
+    print('+------------------------------+')
+    print('|                              |')
+    print('|  ' + BashColor.kRed + 'Porn Video Downloader' +
+        BashColor.kClear + '       |')
+    print('|                              |')
+    print('+------------------------------+')
+    print('|  ' + BashColor.kGreen + 'Supported Sites :' +
+        BashColor.kClear + '           |')
+    print('|    https://85tube.com/       |')
+    print('|    https://porn5f.com/       |')
+    print('|    https://xvideos.com/      |')
+    print('+------------------------------+')
 
-while True:
-    downloadDirectory = input('\nPlease input download directory : ')
-
-    # Set default directory to current workspace.
-    if downloadDirectory == '':
-        downloadDirectory = './'
-        break
-
-    # Set directory to exists directory.
-    elif path.exists(downloadDirectory):
-        if not downloadDirectory.endswith('/'):
-            downloadDirectory = downloadDirectory + "/"
-
-        break
-
-    # Directory doesn't exist.
-    else:
-        print("Invalid directory path : {}".format(downloadDirectory))
-
-# Print target directory.
-print("Download directory is set to '{}' .\n".format(downloadDirectory))
-
-
-""" Read urls """
-
-urls = []
-
-isFromFile = input("Do you want to read url(s) from file ? [y/N] ")
-
-if isFromFile == "y" or isFromFile == "Y":
-    # Input filename.
     while True:
-        filepath = input('Please input full file path : ')
+        downloadDirectory = input('\nPlease input download directory : ')
 
-        if path.isfile(filepath):
+        # Set default directory to current workspace.
+        if downloadDirectory == '':
+            downloadDirectory = './'
             break
+
+        # Set directory to exists directory.
+        elif path.exists(downloadDirectory):
+            if not downloadDirectory.endswith('/'):
+                downloadDirectory = downloadDirectory + "/"
+
+            break
+
+        # Directory doesn't exist.
         else:
-            print("Invalid file path '{}' .\n".format(filepath))
+            print("Invalid directory path : {}".format(downloadDirectory))
 
-    print("Read url(s) from '{}' .".format(filepath))
-
-    # Read file contains urls.
-    with open(filepath, "r") as fin:
-        urls = fin.readlines()
-
-    # Deal urls.
-    i = 0
-    length = len(urls)
-    while i < length:
-        # Remove line endings.
-        urls[i] = urls[i].replace("\r", "")
-        urls[i] = urls[i].replace("\n", "")
-
-        # Remove empty urls.
-        if urls[i] == "":
-            urls.remove(urls[i])
-            length -= 1
-        else:
-            i += 1
-
-    print("Total reads {} line(s).".format(len(urls)))
-
-else:
-    url = input("Please input website url : ")
-    urls.append(url)
+    # Print target directory.
+    print("Download directory is set to '{}' .\n".format(downloadDirectory))
 
 
-# Setup for downloading.
-countTotal = len(urls)
-countFailed = 0
-failedUrl = []
+    """ Read urls """
 
-# Download each urls.
-for i in range(len(urls)):
-    url = urls[i]
-    checkFlag = True
+    urls = []
 
-    # Print case number.
-    print(("\n" + BashColor.kGreen +
-           "[ Case {} ]" + BashColor.kClear).format(i+1))
+    isFromFile = input("Do you want to read url(s) from file ? [y/N] ")
 
-    # 85tube.com
-    if url.find('85tube.com') != -1:
-        videoUrl = get_85tube_videoUrl(url)
-        extName = ".mp4"
-        withProgress = True
+    if isFromFile == "y" or isFromFile == "Y":
+        # Input filename.
+        while True:
+            filepath = input('Please input full file path : ')
 
-    # porn5f.com
-    elif url.find('www.porn5f.com') != -1:
-        videoUrl = get_porn5f_videoUrl(url)
-        extName = ".m3u8"
-        withProgress = False
+            if path.isfile(filepath):
+                break
+            else:
+                print("Invalid file path '{}' .\n".format(filepath))
 
-    # xvideos.com
-    elif url.find('www.xvideos.com') != -1:
-        videoUrl = get_xvideos_videoUrl(url)
-        extName = ".mp4"
-        withProgress = True
+        print("Read url(s) from '{}' .".format(filepath))
 
-    # Not support website.
+        # Read file contains urls.
+        with open(filepath, "r") as fin:
+            urls = fin.readlines()
+
+        # Deal urls.
+        i = 0
+        length = len(urls)
+        while i < length:
+            # Remove line endings.
+            urls[i] = urls[i].replace("\r", "")
+            urls[i] = urls[i].replace("\n", "")
+
+            # Remove empty urls.
+            if urls[i] == "":
+                urls.remove(urls[i])
+                length -= 1
+            else:
+                i += 1
+
+        print("Total reads {} line(s).".format(len(urls)))
+
     else:
-        checkFlag = False
+        url = input("Please input website url : ")
+        urls.append(url)
 
-    # Check domain of target website.
-    if checkFlag:
-        # Get web page title as video title.
-        videoTitle = formatFilename(getWebsiteTitle(url))
 
-        # Get unique filename.
-        videoTitle = getUniqueFilename(downloadDirectory, videoTitle, extName)
+    # Setup for downloading.
+    countTotal = len(urls)
+    countFailed = 0
+    failedUrl = []
 
-        # Download video.
-        if downloadFile(videoUrl, downloadDirectory + videoTitle + extName, withProgress):
-            # Deal with playlist.
-            if extName == ".m3u8":
-                # Get unique filename.
-                videoTitleTs = getUniqueFilename(
-                    downloadDirectory, videoTitle, ".ts")
+    # Download each urls.
+    for i in range(len(urls)):
+        url = urls[i]
+        checkFlag = True
 
-                # Download videos in playlist.
-                if playlistToTs(downloadDirectory + videoTitle + extName, downloadDirectory + videoTitleTs + ".ts", True):
-                    print("Download '{}' successfully.".format(
-                        videoTitleTs + ".ts"))
+        # Print case number.
+        print(("\n" + BashColor.kGreen +
+            "[ Case {} ]" + BashColor.kClear).format(i+1))
+
+        # 85tube.com
+        if url.find('85tube.com') != -1:
+            videoUrl = get_85tube_videoUrl(url)
+            extName = ".mp4"
+            withProgress = True
+
+        # porn5f.com
+        elif url.find('www.porn5f.com') != -1:
+            videoUrl = get_porn5f_videoUrl(url)
+            extName = ".m3u8"
+            withProgress = False
+
+        # xvideos.com
+        elif url.find('www.xvideos.com') != -1:
+            videoUrl = get_xvideos_videoUrl(url)
+            extName = ".mp4"
+            withProgress = True
+
+        # tktube.com
+        elif url.find('tktube.com') != -1:
+            videoUrl = get_tktube_videoUrl(url)
+            extName = ".mp4"
+            withProgress = True
+
+        # Not support website.
+        else:
+            checkFlag = False
+
+        # Check domain of target website.
+        if checkFlag:
+            # Get web page title as video title.
+            videoTitle = formatFilename(getWebsiteTitle(url))
+
+            # Get unique filename.
+            videoTitle = getUniqueFilename(downloadDirectory, videoTitle, extName)
+
+            # Download video.
+            if downloadFile(videoUrl, downloadDirectory + videoTitle + extName, withProgress):
+                # Deal with playlist.
+                if extName == ".m3u8":
+                    # Get unique filename.
+                    videoTitleTs = getUniqueFilename(
+                        downloadDirectory, videoTitle, ".ts")
+
+                    # Download videos in playlist.
+                    if playlistToTs(downloadDirectory + videoTitle + extName, downloadDirectory + videoTitleTs + ".ts", True):
+                        print("Download '{}' successfully.".format(
+                            videoTitleTs + ".ts"))
+                    else:
+                        print("Download '{}' failed.".format(videoTitleTs + ".ts"))
+                        failedUrl.append(url)
+                        countFailed += 1
+
+                    # Remove playlist file.
+                    remove(downloadDirectory + videoTitle + extName)
+
                 else:
-                    print("Download '{}' failed.".format(videoTitleTs + ".ts"))
-                    failedUrl.append(url)
-                    countFailed += 1
-
-                # Remove playlist file.
-                remove(downloadDirectory + videoTitle + extName)
+                    print("Download '{}' successfully.".format(videoTitle + extName))
 
             else:
-                print("Download '{}' successfully.".format(videoTitle + extName))
+                print("Download '{}' failed.".format(videoTitle + extName))
+                failedUrl.append(url)
+                countFailed += 1
 
         else:
-            print("Download '{}' failed.".format(videoTitle + extName))
-            failedUrl.append(url)
-            countFailed += 1
+            print('Unsupported website #{}#.'.format(url))
 
-    else:
-        print('Unsupported website #{}#.'.format(url))
+    # Print summary.
+    print("\n==== Complete =======================")
+    print("  Total {} , Success {} , Failed {}".format(
+        countTotal, (countTotal-countFailed), countFailed))
 
-# Print summary.
-print("\n==== Complete =======================")
-print("  Total {} , Success {} , Failed {}".format(
-    countTotal, (countTotal-countFailed), countFailed))
+    # Output failed to file.
+    if countFailed > 0:
+        with open("failed.txt", "w") as fout:
+            for i in failedUrl:
+                fout.write(i + "\n")
 
-# Output failed to file.
-if countFailed > 0:
-    with open("failed.txt", "w") as fout:
-        for i in failedUrl:
-            fout.write(i + "\n")
+        print("All url(s) which downloaded failed are output to failed.txt .")
 
-    print("All url(s) which downloaded failed are output to failed.txt .")
+    print()
 
-print()
