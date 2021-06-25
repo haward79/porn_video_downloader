@@ -383,15 +383,14 @@ class BashColor:
 if __name__ == '__main__':
     print('+------------------------------+')
     print('|                              |')
-    print('|  ' + BashColor.kRed + 'Porn Video Downloader' +
-        BashColor.kClear + '       |')
+    print('|  ' + BashColor.kRed + 'Porn Video Downloader' + BashColor.kClear + '       |')
     print('|                              |')
     print('+------------------------------+')
-    print('|  ' + BashColor.kGreen + 'Supported Sites :' +
-        BashColor.kClear + '           |')
+    print('|  ' + BashColor.kGreen + 'Supported Sites :' + BashColor.kClear + '           |')
     print('|    https://85tube.com/       |')
     print('|    https://porn5f.com/       |')
     print('|    https://xvideos.com/      |')
+    print('|    https://tktube.com/       |')
     print('+------------------------------+')
 
     while True:
