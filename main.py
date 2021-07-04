@@ -9,7 +9,9 @@ from urllib import request
 from urllib import error
 import requests
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from math import ceil
 
 """ Define constant """
@@ -103,15 +105,36 @@ def get_xvideos_videoUrl(url: str) -> str:
 
 def get_tktube_videoUrl(url: str) -> str:
 
-    sourceCode = retrieveSourceCodeWithJs(url)
+    videoUrl = ''
 
-    pos = sourceCode.find('src="https://tktube.com/get_file')
+    firefoxOptions = webdriver.FirefoxOptions()
+    firefoxOptions.add_argument('-headless')
 
-    if pos != -1:
-        videoUrl = fetchString(sourceCode, pos + 5, '"')
-    else:
-        videoUrl = ''
+    firefox = webdriver.Firefox(options=firefoxOptions)
+    firefox.get(url)
 
+    try:
+        showVideoButton = firefox.find_element_by_css_selector('.fp-ui')
+    except:
+        firefox.close()
+        return ''
+    
+    firefox.execute_script("arguments[0].click();", showVideoButton)
+    
+    try:
+        WebDriverWait(firefox, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'video[src*=\'https://tktube.com/get_file/\']')))
+    except:
+        firefox.close()
+        return ''
+    
+    video = firefox.find_element_by_css_selector('video[src*=\'https://tktube.com/get_file/\']')
+    videoUrl = video.get_attribute('src')
+
+    firefox.close()
+
+    if path.isfile('geckodriver.log'):
+        remove('geckodriver.log')
+    
     return videoUrl
 
 
@@ -511,7 +534,12 @@ if __name__ == '__main__':
             videoTitle = getUniqueFilename(downloadDirectory, videoTitle, extName)
 
             # Download video.
-            if downloadFile(videoUrl, downloadDirectory + videoTitle + extName, withProgress):
+            if videoUrl == '':
+                print(BashColor.kRed + 'Failed to fetch video url !' + BashColor.kClear)
+                failedUrl.append(url)
+                countFailed += 1
+
+            elif downloadFile(videoUrl, downloadDirectory + videoTitle + extName, withProgress):
                 # Deal with playlist.
                 if extName == ".m3u8":
                     # Get unique filename.

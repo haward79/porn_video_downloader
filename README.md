@@ -42,6 +42,11 @@ Then, follow the instructions to choose a created directory for saving downloade
 Finally, input the video urls from file or keyboard.
 
 # Changelog
+- 07 / 04 2021
+  - Remove unused import
+  - Improve download scripts for tktube
+  - Fix empty video url bug.
+
 - 06 / 25 2021
   - Add support for tktube.com .
   - Add module support for this library.
