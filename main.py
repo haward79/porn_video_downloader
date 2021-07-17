@@ -484,9 +484,10 @@ def interactiveMenu():
 """ Main """
 
 if __name__ == '__main__':
-    argparser = argparse.ArgumentParser(description='Download porn videos. To use interactive mode, please run without argument. To use silent mode, please run with both following arguments')
+    argparser = argparse.ArgumentParser(description='Download porn videos. To use interactive mode, please run without argument. To use silent mode, please run with all following arguments')
     argparser.add_argument('--urls-file', dest = 'file_path', help = 'Filename or filepath which contains url to be downloaded')
     argparser.add_argument('--target-dir', dest = 'download_directory', help = 'Target directory to save downloaded videos')
+    argparser.add_argument('--work-dir', dest = 'work_dir', help = 'Working directory to output failed.txt')
     args = argparser.parse_args()
 
     if args.file_path == None and args.download_directory == None:
@@ -495,6 +496,17 @@ if __name__ == '__main__':
     elif args.file_path != None and args.download_directory != None:
         downloadDirectory = args.download_directory
         filepath = args.file_path
+        workDirectory = args.work_dir
+
+        if not path.exists(downloadDirectory):
+            print(BashColor.kRed + 'Invalid directory to save videos !\n' + BashColor.kClear)
+            exit()
+        
+        else:
+            if not downloadDirectory.endswith('/'):
+                downloadDirectory = downloadDirectory + "/"
+
+            print("Download directory is set to {} .\n".format(downloadDirectory))
 
         if not path.exists(filepath):
             print(BashColor.kRed + 'Invalid file path for urls !\n' + BashColor.kClear)
@@ -521,15 +533,15 @@ if __name__ == '__main__':
 
             print("Total reads {} url(s).".format(len(urls)))
 
-        if not path.exists(downloadDirectory):
-            print(BashColor.kRed + 'Invalid directory to save videos !\n' + BashColor.kClear)
+        if not path.exists(workDirectory):
+            print(BashColor.kRed + 'Invalid work directory !\n' + BashColor.kClear)
             exit()
         
         else:
-            if not downloadDirectory.endswith('/'):
-                downloadDirectory = downloadDirectory + "/"
+            if not workDirectory.endswith('/'):
+                workDirectory = workDirectory + "/"
 
-            print("Download directory is set to {} .\n".format(downloadDirectory))
+            print("Work directory is set to {} .\n".format(workDirectory))
 
     else:
         argparser.print_help()
@@ -626,11 +638,11 @@ if __name__ == '__main__':
 
     # Output failed to file.
     if countFailed > 0:
-        with open("failed.txt", "w") as fout:
+        with open(workDirectory + "failed.txt", "w") as fout:
             for i in failedUrl:
                 fout.write(i + "\n")
 
-        print("All url(s) which downloaded failed are output to failed.txt .")
+        print('All url(s) which downloaded failed are output to {}"failed.txt" .'.format(workDirectory))
 
     print()
 
