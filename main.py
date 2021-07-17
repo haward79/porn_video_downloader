@@ -5,16 +5,16 @@ from os import stat
 from os import remove
 from os import path
 from os import popen
-from urllib import request
-from urllib import error
+from math import ceil
 import requests
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from math import ceil
+import argparse
 
 """ Define constant """
+kRequestsHeaders = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0'}
 kMaxFilenameLength = 95
 
 
@@ -36,13 +36,10 @@ def fetchString(str: str, startIndex: int, endDelimiter: str) -> str:
 
 def retrieveSourceCode(url: str) -> str:
 
-    req = request.Request(url)
-    req.add_header('User-Agent', 'Mozilla/5.0 (X11; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0')
+    global kRequestsHeaders
 
-    try:
-        sourceCode = request.urlopen(req).read().decode('utf-8')
-    except error.HTTPError:
-        return ''
+    response = requests.get(url, headers=kRequestsHeaders, verify=False)
+    sourceCode = response.content.decode('utf-8')
 
     return sourceCode
 
@@ -117,6 +114,10 @@ def get_tktube_videoUrl(url: str) -> str:
         showVideoButton = firefox.find_element_by_css_selector('.fp-ui')
     except:
         firefox.close()
+
+        if path.isfile('geckodriver.log'):
+            remove('geckodriver.log')
+
         return ''
     
     firefox.execute_script("arguments[0].click();", showVideoButton)
@@ -125,6 +126,10 @@ def get_tktube_videoUrl(url: str) -> str:
         WebDriverWait(firefox, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'video[src*=\'https://tktube.com/get_file/\']')))
     except:
         firefox.close()
+
+        if path.isfile('geckodriver.log'):
+            remove('geckodriver.log')
+
         return ''
     
     video = firefox.find_element_by_css_selector('video[src*=\'https://tktube.com/get_file/\']')
@@ -247,8 +252,7 @@ def getReadableSize(byteSize: int) -> str:
 
 def downloadFile(url: str, filename: str, showProgress: bool) -> bool:
 
-    kHeaders = {
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0'}
+    global kRequestsHeaders
 
     if showProgress:
         print('Download file ......')
@@ -259,7 +263,7 @@ def downloadFile(url: str, filename: str, showProgress: bool) -> bool:
 
     else:
         # Download file.
-        req = requests.get(url, stream=True, headers=kHeaders, verify=False)
+        req = requests.get(url, stream=True, headers=kRequestsHeaders, verify=False)
         contentBytes = req.headers.get('content-length')
         dlBytes = 0
         sliceBytes = 4096
@@ -333,6 +337,7 @@ def playlistToMp4(input: str, output: str) -> bool:
 
 def playlistToTs(input: str, output: str, showProgress: bool) -> bool:
 
+    global kRequestsHeaders
     urls = []
 
     print('Download video trims from playlist ......')
@@ -352,16 +357,9 @@ def playlistToTs(input: str, output: str, showProgress: bool) -> bool:
 
     for i in range(countUrls):
         url = urls[i]
-        req = request.Request(url)
-        req.add_header(
-            'User-Agent', 'Mozilla/5.0 (X11; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0')
 
-        try:
-            resp = request.urlopen(req).read()
-        except error.URLError:
-            return False
-
-        data += resp
+        response = requests.get(url, headers=kRequestsHeaders, verify=False)
+        data += response.content
 
         if showProgress:
             cols = getTerminalSize()['col'] - 10
@@ -369,8 +367,7 @@ def playlistToTs(input: str, output: str, showProgress: bool) -> bool:
             progress100 = int(progress * 100)
             countDone = int(cols * progress)
             countUndone = cols - countDone
-            print('\r[%s%s] %3d%%' %
-                  ('=' * countDone, ' ' * countUndone, progress100), end='')
+            print('\r[%s%s] %3d%%' % ('=' * countDone, ' ' * countUndone, progress100), end='')
 
     if showProgress:
         print()
@@ -401,9 +398,8 @@ class BashColor:
     kGreen = '\033[92m'
 
 
-""" Main """
+def interactiveMenu():
 
-if __name__ == '__main__':
     print('+------------------------------+')
     print('|                              |')
     print('|  ' + BashColor.kRed + 'Porn Video Downloader' + BashColor.kClear + '       |')
@@ -482,6 +478,62 @@ if __name__ == '__main__':
         url = input("Please input website url : ")
         urls.append(url)
 
+    return (downloadDirectory, urls)
+
+
+""" Main """
+
+if __name__ == '__main__':
+    argparser = argparse.ArgumentParser(description='Download porn videos. To use interactive mode, please run without argument. To use silent mode, please run with both following arguments')
+    argparser.add_argument('--urls-file', dest = 'file_path', help = 'Filename or filepath which contains url to be downloaded')
+    argparser.add_argument('--target-dir', dest = 'download_directory', help = 'Target directory to save downloaded videos')
+    args = argparser.parse_args()
+
+    if args.file_path == None and args.download_directory == None:
+        (downloadDirectory, urls) = interactiveMenu()
+
+    elif args.file_path != None and args.download_directory != None:
+        downloadDirectory = args.download_directory
+        filepath = args.file_path
+
+        if not path.exists(filepath):
+            print(BashColor.kRed + 'Invalid file path for urls !\n' + BashColor.kClear)
+            exit()
+
+        else:
+            with open(filepath, 'r') as fin:
+                urls = fin.readlines()
+
+            # Deal urls.
+            i = 0
+            length = len(urls)
+            while i < length:
+                # Remove line endings.
+                urls[i] = urls[i].replace("\r", "")
+                urls[i] = urls[i].replace("\n", "")
+
+                # Remove empty urls.
+                if urls[i] == "":
+                    urls.remove(urls[i])
+                    length -= 1
+                else:
+                    i += 1
+
+            print("Total reads {} url(s).".format(len(urls)))
+
+        if not path.exists(downloadDirectory):
+            print(BashColor.kRed + 'Invalid directory to save videos !\n' + BashColor.kClear)
+            exit()
+        
+        else:
+            if not downloadDirectory.endswith('/'):
+                downloadDirectory = downloadDirectory + "/"
+
+            print("Download directory is set to {} .\n".format(downloadDirectory))
+
+    else:
+        argparser.print_help()
+        exit()
 
     # Setup for downloading.
     countTotal = len(urls)
@@ -543,13 +595,11 @@ if __name__ == '__main__':
                 # Deal with playlist.
                 if extName == ".m3u8":
                     # Get unique filename.
-                    videoTitleTs = getUniqueFilename(
-                        downloadDirectory, videoTitle, ".ts")
+                    videoTitleTs = getUniqueFilename(downloadDirectory, videoTitle, ".ts")
 
                     # Download videos in playlist.
                     if playlistToTs(downloadDirectory + videoTitle + extName, downloadDirectory + videoTitleTs + ".ts", True):
-                        print("Download '{}' successfully.".format(
-                            videoTitleTs + ".ts"))
+                        print("Download '{}' successfully.".format(videoTitleTs + ".ts"))
                     else:
                         print("Download '{}' failed.".format(videoTitleTs + ".ts"))
                         failedUrl.append(url)
