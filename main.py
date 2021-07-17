@@ -490,10 +490,14 @@ if __name__ == '__main__':
     argparser.add_argument('--work-dir', dest = 'work_dir', help = 'Working directory to output failed.txt')
     args = argparser.parse_args()
 
+    isSilentMode = False
+
     if args.file_path == None and args.download_directory == None:
         (downloadDirectory, urls) = interactiveMenu()
 
     elif args.file_path != None and args.download_directory != None:
+        isSilentMode = True
+        
         downloadDirectory = args.download_directory
         filepath = args.file_path
         workDirectory = args.work_dir
@@ -603,14 +607,14 @@ if __name__ == '__main__':
                 failedUrl.append(url)
                 countFailed += 1
 
-            elif downloadFile(videoUrl, downloadDirectory + videoTitle + extName, withProgress):
+            elif downloadFile(videoUrl, downloadDirectory + videoTitle + extName, (not isSilentMode) and withProgress):
                 # Deal with playlist.
                 if extName == ".m3u8":
                     # Get unique filename.
                     videoTitleTs = getUniqueFilename(downloadDirectory, videoTitle, ".ts")
 
                     # Download videos in playlist.
-                    if playlistToTs(downloadDirectory + videoTitle + extName, downloadDirectory + videoTitleTs + ".ts", True):
+                    if playlistToTs(downloadDirectory + videoTitle + extName, downloadDirectory + videoTitleTs + ".ts", not isSilentMode):
                         print("Download '{}' successfully.".format(videoTitleTs + ".ts"))
                     else:
                         print("Download '{}' failed.".format(videoTitleTs + ".ts"))
@@ -642,7 +646,7 @@ if __name__ == '__main__':
             for i in failedUrl:
                 fout.write(i + "\n")
 
-        print('All url(s) which downloaded failed are output to {}"failed.txt" .'.format(workDirectory))
+        print('All url(s) which downloaded failed are output to "{}failed.txt" .'.format(workDirectory))
 
     print()
 
