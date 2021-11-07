@@ -19,14 +19,13 @@ This program supports videos on the following websites :
 
 - Software
   - Linux based OS
+    - *Note : This program may run on Windows by modifying some codes.*
   - Python 3
   - Python 3 Library - Selenium (web browser driver)
-  - Web Browser
-
-Please install appropriate web browser and driver for selenium(python library).
-You can get reference from [selenium website](https://pypi.org/project/selenium/).
-
-*Note : This program may run on Windows by modifying some codes.*
+    - Please install appropriate web browser and driver for selenium(python library).
+    - You can get reference from [selenium website](https://pypi.org/project/selenium/).
+  - Web Browser (with media codecs)
+    - You can install the codecs by apt with package name libavcodec-extra.
 
 # Install
 This program doesn't need to install.
@@ -45,6 +44,7 @@ Finally, input the video urls from file or keyboard.
 - 11 / 07 2021
   - Fix bugs for porn5f.com .
   - Remove .gitignore from git management.
+  - Edit Pre-requirements guide in README.md .
 
 - 07 / 18 2021
   - Remove use of urllib.
