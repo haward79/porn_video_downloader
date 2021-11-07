@@ -42,13 +42,16 @@ Then, follow the instructions to choose a created directory for saving downloade
 Finally, input the video urls from file or keyboard.
 
 # Changelog
+- 11 / 07 2021
+  - Fix bug for porn5f.com .
+
 - 07 / 18 2021
-  - Remove use of urllib
+  - Remove use of urllib.
   - Add silent mode.
 
 - 07 / 04 2021
-  - Remove unused import
-  - Improve download scripts for tktube
+  - Remove unused import.
+  - Improve download scripts for tktube.
   - Fix empty video url bug.
 
 - 06 / 25 2021

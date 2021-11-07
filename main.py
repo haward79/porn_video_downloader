@@ -348,7 +348,9 @@ def playlistToTs(input: str, output: str, showProgress: bool) -> bool:
 
         for i in lines:
             if i.startswith("http"):
-                urls.append(i)
+                urls.append(i.replace('\n', ''))
+
+    print(urls)
 
     data = bytearray(b'')
 
