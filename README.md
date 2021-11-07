@@ -43,7 +43,8 @@ Finally, input the video urls from file or keyboard.
 
 # Changelog
 - 11 / 07 2021
-  - Fix bug for porn5f.com .
+  - Fix bugs for porn5f.com .
+  - Remove .gitignore from git management.
 
 - 07 / 18 2021
   - Remove use of urllib.

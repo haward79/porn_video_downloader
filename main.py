@@ -123,7 +123,7 @@ def get_tktube_videoUrl(url: str) -> str:
     firefox.execute_script("arguments[0].click();", showVideoButton)
     
     try:
-        WebDriverWait(firefox, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'video[src*=\'https://tktube.com/get_file/\']')))
+        WebDriverWait(firefox, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'video[src*=\'tktube.com/get_file/\']')))
     except:
         firefox.close()
 
@@ -132,7 +132,7 @@ def get_tktube_videoUrl(url: str) -> str:
 
         return ''
     
-    video = firefox.find_element_by_css_selector('video[src*=\'https://tktube.com/get_file/\']')
+    video = firefox.find_element_by_css_selector('video[src*=\'tktube.com/get_file/\']')
     videoUrl = video.get_attribute('src')
 
     firefox.close()
