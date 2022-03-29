@@ -41,6 +41,9 @@ Then, follow the instructions to choose a created directory for saving downloade
 Finally, input the video urls from file or keyboard.
 
 # Changelog
+- 03 / 29 2022
+  - Fix bug for xvideos.com .
+
 - 11 / 07 2021
   - Fix bugs for porn5f.com .
   - Remove .gitignore from git management.

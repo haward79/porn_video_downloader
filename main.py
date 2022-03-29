@@ -90,7 +90,7 @@ def get_porn5f_videoUrl(url: str) -> str:
 def get_xvideos_videoUrl(url: str) -> str:
 
     sourceCode = retrieveSourceCode(url)
-    pos = sourceCode.find('html5player.setVideoUrlHigh')
+    pos = sourceCode.find('html5player.setVideoHLS')
 
     if pos != -1:
         videoUrl = fetchString(sourceCode, pos + 29, "'")
