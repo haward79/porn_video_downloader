@@ -41,6 +41,9 @@ Then, follow the instructions to choose a created directory for saving downloade
 Finally, input the video urls from file or keyboard.
 
 # Changelog
+- 04 / 26 2022
+  - Fix bug for xvideos.com .
+
 - 03 / 29 2022
   - Fix bug for xvideos.com .
 

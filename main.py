@@ -20,9 +20,16 @@ kMaxFilenameLength = 95
 
 def getTerminalSize() -> dict:
 
-    (rows, cols) = popen('stty size').read().split()
-    rows = int(rows)
-    cols = int(cols)
+    rows = 0
+    cols = 0
+
+    try:
+        (rows, cols) = popen('stty size').read().split()
+    except:
+        print('Failed to get size of terminal.')
+    else:
+        rows = int(rows)
+        cols = int(cols)
 
     return {'row': rows, 'col': cols}
 
@@ -93,7 +100,7 @@ def get_xvideos_videoUrl(url: str) -> str:
     pos = sourceCode.find('html5player.setVideoHLS')
 
     if pos != -1:
-        videoUrl = fetchString(sourceCode, pos + 29, "'")
+        videoUrl = fetchString(sourceCode, pos+25, "'")
     else:
         videoUrl = ''
 
@@ -317,28 +324,12 @@ def downloadFile(url: str, filename: str, showProgress: bool) -> bool:
             return False
 
 
-def playlistToMp4(input: str, output: str) -> bool:
-
-    system("ffmpeg -loglevel quiet -protocol_whitelist file,crypto,data,http,https,tls,tcp -i '{}' '{}' ".format(input, output))
-
-    # File exists.
-    if path.isfile(output):
-
-        # File size not empty.
-        if stat(output).st_size > 0:
-            return True
-        else:
-            remove(output)
-            return False
-
-    else:
-        return False
-
-
-def playlistToTs(input: str, output: str, showProgress: bool) -> bool:
+def playlistToTs(input: str, originalUrl: str, output: str, showProgress: bool) -> bool:
 
     global kRequestsHeaders
     urls = []
+    resolutions = []
+    resolutions_url = {}
 
     print('Download video trims from playlist ......')
 
@@ -347,15 +338,39 @@ def playlistToTs(input: str, output: str, showProgress: bool) -> bool:
         lines = fin.readlines()
 
         for i in lines:
+            i = i.replace('\n', '')
+
             if i.startswith("http"):
-                urls.append(i.replace('\n', ''))
+                urls.append(i)
+            elif i.startswith('hls-'):
+                resolution = int(fetchString(i, 4, 'p'))
+                resolutions.append(resolution)
+                resolutions_url[str(resolution)] = i
 
-    print(urls)
+    if len(urls) == 0 and len(resolutions) > 0:
+        resolutions.sort(reverse=True)
+        resolution = resolutions[0]
+        filename = resolutions_url[str(resolution)]
 
-    data = bytearray(b'')
+        print('The best resolution is {}p.'.format(resolution))
+
+        pos = originalUrl.rfind('/')
+        if pos != -1:
+            baseUrl = originalUrl[0:pos] + '/'
+            playlist_url = baseUrl + filename
+
+            if downloadFile(playlist_url, input, showProgress):
+                with open(input, "r") as fin:
+                    lines = fin.readlines()
+
+                    for i in lines:
+                        if not i.startswith('#'):
+                            filename = i.replace('\n', '')
+                            urls.append(baseUrl + filename)
 
     # Download and concat video trims.
     countUrls = len(urls)
+    data = bytearray(b'')
 
     for i in range(countUrls):
         url = urls[i]
@@ -582,7 +597,7 @@ if __name__ == '__main__':
         # xvideos.com
         elif url.find('www.xvideos.com') != -1:
             videoUrl = get_xvideos_videoUrl(url)
-            extName = ".mp4"
+            extName = ".m3u8"
             withProgress = True
 
         # tktube.com
@@ -616,7 +631,7 @@ if __name__ == '__main__':
                     videoTitleTs = getUniqueFilename(downloadDirectory, videoTitle, ".ts")
 
                     # Download videos in playlist.
-                    if playlistToTs(downloadDirectory + videoTitle + extName, downloadDirectory + videoTitleTs + ".ts", not isSilentMode):
+                    if playlistToTs(downloadDirectory + videoTitle + extName, videoUrl, downloadDirectory + videoTitleTs + ".ts", not isSilentMode):
                         print("Download '{}' successfully.".format(videoTitleTs + ".ts"))
                     else:
                         print("Download '{}' failed.".format(videoTitleTs + ".ts"))
