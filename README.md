@@ -41,6 +41,9 @@ Then, follow the instructions to choose a created directory for saving downloade
 Finally, input the video urls from file or keyboard.
 
 # Changelog
+- 06 / 05 2022
+  - Fix bug for 85tube.com .
+
 - 04 / 26 2022
   - Fix bug for xvideos.com .
 

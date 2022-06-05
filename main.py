@@ -70,14 +70,22 @@ def retrieveSourceCodeWithJs(url: str) -> str:
 
 def get_85tube_videoUrl(url: str) -> str:
 
-    sourceCode = retrieveSourceCode(url)
-    pos = sourceCode.find('video_url')
+    videoUrl = ''
 
-    if pos != -1:
-        videoUrl = fetchString(sourceCode, pos + 12, "'")
-    else:
-        videoUrl = ''
+    firefoxOptions = webdriver.FirefoxOptions()
+    firefoxOptions.add_argument('-headless')
 
+    firefox = webdriver.Firefox(options=firefoxOptions)
+    firefox.get(url)
+    
+    video = firefox.find_element_by_css_selector('#kt_player video')
+    videoUrl = video.get_attribute('src')
+
+    firefox.close()
+
+    if path.isfile('geckodriver.log'):
+        remove('geckodriver.log')
+    
     return videoUrl
 
 
