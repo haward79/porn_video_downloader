@@ -6,6 +6,7 @@ from os import remove
 from os import path
 from os import popen
 from math import ceil
+from time import sleep
 import requests
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -76,9 +77,19 @@ def get_85tube_videoUrl(url: str) -> str:
     firefoxOptions.add_argument('-headless')
 
     firefox = webdriver.Firefox(options=firefoxOptions)
-    firefox.get(url)
     
-    video = firefox.find_element_by_css_selector('#kt_player video')
+    for i in range(5):
+        firefox.get(url)
+        
+        try:
+        	video = firefox.find_element_by_css_selector('#kt_player video')
+        except:
+            print('Failed to locate video element')
+            sleep(0.5)
+        else:
+            print('Video element located successfully')
+            break
+	
     videoUrl = video.get_attribute('src')
 
     firefox.close()
