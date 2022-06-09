@@ -44,6 +44,9 @@ Finally, input the video urls from file or keyboard.
 - 06 / 09 2022
   - Fix bug for 85tube.com .
 
+- 06 / 09 2022
+  - Fix bug for 85tube.com .
+
 - 06 / 05 2022
   - Fix bug for 85tube.com .
 

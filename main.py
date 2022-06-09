@@ -82,15 +82,14 @@ def get_85tube_videoUrl(url: str) -> str:
         firefox.get(url)
         
         try:
-        	video = firefox.find_element_by_css_selector('#kt_player video')
+            video = firefox.find_element_by_css_selector('#kt_player video')
         except:
             print('Failed to locate video element')
             sleep(0.5)
         else:
             print('Video element located successfully')
+            videoUrl = video.get_attribute('src')
             break
-	
-    videoUrl = video.get_attribute('src')
 
     firefox.close()
 
