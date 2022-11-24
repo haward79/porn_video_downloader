@@ -1,6 +1,5 @@
 
 """ Import """
-from os import system
 from os import stat
 from os import remove
 from os import path
@@ -82,7 +81,7 @@ def get_85tube_videoUrl(url: str) -> str:
         firefox.get(url)
         
         try:
-            video = firefox.find_element_by_css_selector('#kt_player video')
+            video = firefox.find_element(By.CSS_SELECTOR, '#kt_player video')
         except:
             print('Failed to locate video element')
             sleep(0.5)
@@ -136,7 +135,7 @@ def get_tktube_videoUrl(url: str) -> str:
     firefox.get(url)
 
     try:
-        showVideoButton = firefox.find_element_by_css_selector('.fp-ui')
+        showVideoButton = firefox.find_element(By.CSS_SELECTOR, '.fp-ui')
     except:
         firefox.close()
 
@@ -157,7 +156,7 @@ def get_tktube_videoUrl(url: str) -> str:
 
         return ''
     
-    video = firefox.find_element_by_css_selector('video[src*=\'tktube.com/get_file/\']')
+    video = firefox.find_element(By.CSS_SELECTOR, 'video[src*=\'tktube.com/get_file/\']')
     videoUrl = video.get_attribute('src')
 
     firefox.close()

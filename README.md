@@ -41,6 +41,9 @@ Then, follow the instructions to choose a created directory for saving downloade
 Finally, input the video urls from file or keyboard.
 
 # Changelog
+- 11 / 24 2022
+  - Replace deprecated function in selenium.
+
 - 06 / 09 2022
   - Fix bug for 85tube.com .
 
