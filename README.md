@@ -8,15 +8,15 @@ This program supports videos on the following websites :
 - tktube.com
 
 # Specification
-- Urls are able to read from file or keyboard.
-- Customize download directory.
-- Automatically name videos by web titles.
-- Automatically resolve naming conflict.
-- Download videos serially.
-- Progress bar for download and processing.
+- File or keyboard input are both supported for video urls.
+- Users can select download directory by themselves.
+- This program can retrieve web page titles as video filenames automatically.
+- Videos are downloaded serially with retry on failure mechanism.
+- Progress bars are available during download.
+- Silent mode with no extra output is supported.
+- This program is written with detailed log mechanism for easy debugging.
 
 # Pre-requirements
-
 - Software
   - Linux based OS
     - *Note : This program may run on Windows by modifying some codes.*
@@ -31,16 +31,18 @@ This program supports videos on the following websites :
 This program doesn't need to install.
 
 # Usage
+To get help, please open terminal and run the following command.
+```
+    python3 main.py -h
+```
 
-To run the program, Please open terminal and run the following commands.
-
-    python3 main.py
-
-Then, follow the instructions to choose a created directory for saving downloaded videos.
-
-Finally, input the video urls from file or keyboard.
+Then, follow the instructions to enjoy this program.
 
 # Changelog
+- 12 / 11 2022
+  - Significant change on codes. All codes are rewrote.
+  - .gitignore edited.
+
 - 11 / 24 2022
   - Replace deprecated function in selenium.
 
@@ -101,4 +103,3 @@ However, editing is NOT allowed.
 
 **The videos downloaded by this program is not responsible by the author of program.  
 Please use this program with care.**
-

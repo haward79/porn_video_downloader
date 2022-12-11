@@ -1,6 +1,7 @@
 .gitignore
+*.log
 __pycache__
 .vscode
-download
 .idea
+download
 
