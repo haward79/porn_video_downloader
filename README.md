@@ -1,7 +1,7 @@
 # What's this
-This is a online video downloader.
+This is an online video downloader.
 
-This program supports videos on the following websites :
+This program supports videos on the following websites:
 - xvideos.com
 - porn5f.com
 - 85tube.com
@@ -39,6 +39,11 @@ To get help, please open terminal and run the following command.
 Then, follow the instructions to enjoy this program.
 
 # Changelog
+- 12 / 13 2022
+  - Fix bugs for download_file().
+  - Write chunk of data to disk to reduce memory usage. (I know disk write operation is slow. QAQ)
+  - Write urls failed to download to disk.
+
 - 12 / 11 2022
   - Significant change on codes. All codes are rewrote.
   - .gitignore edited.

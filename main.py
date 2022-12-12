@@ -1,5 +1,5 @@
 
-""" Import """
+# Import library.
 from typing import List
 import logging
 import argparse
@@ -20,14 +20,15 @@ from selenium.common.exceptions import NoSuchElementException, InvalidArgumentEx
 urllib3.disable_warnings()
 
 
-""" Define constant """
+# Define constant.
+URL_FAILED_FILENAME = 'url_failed.txt'
 SIZE_NAMES = ('B', 'KB', 'MB', 'GB', 'TB')
 REQUEST_HEADER = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:108.0) Gecko/20100101 Firefox/108.0'}
 REQUEST_CHUNK_SIZE = 4096
 MAX_FILENAME_LENGTH = 90
 
 
-""" Define class """
+# Define class.
 class BashColor:
 
     # Constants.
@@ -36,7 +37,7 @@ class BashColor:
     GREEN = '\033[92m'
 
 
-""" Define function """
+# Define function.
 def init_logger(work_dir: str) -> logging.Logger:
 
     filename = Path(work_dir, 'CHECKME.log')
@@ -241,6 +242,8 @@ def get_website_title(url: str) -> str:
 
 def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool = True) -> bool:
 
+    is_success = False
+
     if is_top:
         print(f'\nDownloading file "{filepath}".')
     logger.info(f'Downloading file "{filepath}" from "{url}".')
@@ -276,43 +279,66 @@ def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool
 
         logger.debug(f'File size reported from server is {content_bytes} bytes ().')
 
-        # Download file.
+        # Clear download file.
         with open(filepath, "wb") as fout:
-            # Download file with no message.
-            if not is_top or is_silent or content_bytes is None:
+            pass
+
+        '''
+        Download file.
+        '''
+        # Download file with no message.
+        if not is_top or is_silent or content_bytes is None:
+            with open(filepath, "ab") as fout:
                 fout.write(request.content)
 
-            # Download file with progress message.
-            else:
-                downloaded_bytes = 0
+        # Download file with progress message.
+        else:
+            downloaded_bytes = 0
 
-                # Write data for chunk size at once.
-                for slice_data in request.iter_content(chunk_size=REQUEST_CHUNK_SIZE):
-                    # Write to disk.
+            # Download data for chunk size at once.
+            for slice_data in request.iter_content(chunk_size=REQUEST_CHUNK_SIZE):
+                # Write chunk to disk.
+                with open(filepath, "ab") as fout:
                     fout.write(slice_data)
 
-                    # Print progress bar.
-                    cols = get_terminal_size()['col'] - 15
-                    downloaded_bytes += len(slice_data)
-                    progress = downloaded_bytes / content_bytes
-                    progress_percent = int(progress * 100)
-                    bar_downloaded = int(cols * progress)
-                    bar_not_downloaded = cols - bar_downloaded
-                    print('\r[{}{}] {:3d}%'.format('=' * bar_downloaded, ' ' * bar_not_downloaded, progress_percent), end='')
-                    # logger.info(f'File downloaded for {downloaded_bytes} bytes in {content_bytes} bytes.')
+                # Print progress bar.
+                cols = get_terminal_size()['col'] - 15
+                downloaded_bytes += len(slice_data)
+                progress = downloaded_bytes / content_bytes
+                progress_percent = int(progress * 100)
+                bar_downloaded = int(cols * progress)
+                bar_not_downloaded = cols - bar_downloaded
+                print('\r[{}{}] {:3d}%'.format('=' * bar_downloaded, ' ' * bar_not_downloaded, progress_percent), end='')
+                # logger.info(f'File downloaded for {downloaded_bytes} bytes in {content_bytes} bytes.')
 
-                print()
+            print()
 
-        # Check integrity of downloaded file.
-        filesize = Path(filepath).stat().st_size
-        is_success = False
+        '''
+        Check integrity of downloaded file.
+        '''
+        file = Path(filepath)
 
-        if content_bytes is None or content_bytes == filesize:
-            logger.debug('File downloaded successfully (or correct file size is unable to check).')
-            is_success = True
-            break
+        if file.is_file():
+            filesize = file.stat().st_size
+
+            if content_bytes is None:
+                logger.debug('Unable to check integrity of downloaded file due to file size is unavailable.')
+                is_success = True
+            else:
+                if content_bytes == filesize:
+                    logger.debug('File downloaded successfully (integrity check passed).')
+                    is_success = True
+                else:
+                    logger.debug('File downloaded failed (integrity check NOT passed).')
+
+                    file.unlink()
+                    logger.debug('Downloaded file is removed from disk.')
+
         else:
-            logger.debug('File downloaded failed.')
+            logger.debug('Downloaded file NOT found. This may due to no write permission to file.')
+
+        if is_success:
+            break
 
     # Check if downloaded file is a playlist.
     if is_success:
@@ -583,14 +609,23 @@ def batch_mode(download_dir: str, urls: List[str], is_silent: bool) -> None:
             print(f'Download video failed.')
             logger.info(f'[ Case {i+1} ] Download video failed.')
 
+            # Write failed url to disk.
+            with open(URL_FAILED_FILENAME, 'a') as fout:
+                fout.write(url + '\n')
+            print('This url failed to download is written to disk.')
+            logger.info('This url failed to download is written to disk.')
+
     print('\nAll cases done.')
     print(f'{count_success}/{len(urls)} cases complete successfully.')
+    print(f'Urls failed to download are written to file "{URL_FAILED_FILENAME}" on disk.')
 
     logger.info('All cases done.')
     logger.info(f'{count_success}/{len(urls)} cases complete successfully.')
 
 
-""" Main """
+'''
+Main
+'''
 # Check arguments.
 args_parser = get_args_parser()
 try:
