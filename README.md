@@ -39,6 +39,9 @@ To get help, please open terminal and run the following command.
 Then, follow the instructions to enjoy this program.
 
 # Changelog
+- 01 / 08 2023
+  - Fix bug for filepath clipping in download_file().
+
 - 12 / 13 2022
   - Fix bugs for download_file().
   - Write chunk of data to disk to reduce memory usage. (I know disk write operation is slow. QAQ)

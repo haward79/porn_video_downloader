@@ -235,12 +235,31 @@ def get_website_title(url: str) -> str:
             return ""
         else:
             website_title = source_code[start_index:ending_index]
+            website_title = website_title.replace('.part', ' part')  # To prevent conflict with clip_filename().
+            website_title = website_title.replace('/', '_')
             logger.debug(f'Got website title "{website_title}".')
 
             return website_title
 
 
-def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool = True) -> bool:
+def clip_filename(filepath: str) -> str:
+
+    parent = str(Path(filepath).parent) + '/'
+    basename = Path(filepath).stem
+    extname = Path(filepath).suffix
+
+    pos = basename.find('.part')
+
+    if pos != -1:
+        extname = basename[pos:] + extname
+        basename = basename[:pos]
+
+    clipped_filepath = parent + basename[:MAX_FILENAME_LENGTH - len(extname)] + extname
+
+    return clipped_filepath
+
+
+def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool = True) -> str:
 
     is_success = False
 
@@ -249,15 +268,12 @@ def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool
     logger.info(f'Downloading file "{filepath}" from "{url}".')
 
     # Check length of filename with extension name is under the limit.
-    if len(Path(filepath).name) > MAX_FILENAME_LENGTH:
-        parent = str(Path(filepath).parent)
-        basename = Path(filepath).stem
-        extname = Path(filepath).suffix
-        filepath = parent + basename[:MAX_FILENAME_LENGTH - len(extname)] + extname
+    original_filepath = filepath
+    filepath = clip_filename(filepath)
 
-        print('Filename exceed MAX_FILENAME_LENGTH. filename is clipped.')
+    if original_filepath != filepath:
         logger.info('Filename exceed MAX_FILENAME_LENGTH. filename is clipped.')
-
+        logger.debug(f'Original filepath is "{original_filepath}".')
         logger.debug(f'Clipped filepath is "{filepath}".')
 
     # Retry 10 times due to some files are really large!
@@ -372,10 +388,14 @@ def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool
                     urls[i] = urllib.parse.urljoin(original_url, url)
 
             # Download all segments.
+            filepath_base = filepath
+            merge_files = []
             for i, url in enumerate(urls):
                 logger.debug(f'Downloading segment part {i+1}.')
-                download_file(url, filepath + '.part' + str(i+1), is_silent, False)
+                filepath_subfile = download_file(url, filepath_base + '.part' + str(i+1), is_silent, False)
+                merge_files.append(filepath_subfile)
                 logger.debug(f'Downloading segment part {i + 1}......Done')
+                logger.debug(f'Segment file is saved to "{filepath_subfile}".')
 
                 # Print progress bar.
                 if is_top and not is_silent:
@@ -393,12 +413,10 @@ def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool
             with open(filepath, 'wb') as fout:
                 logger.debug(f'Merging segment parts to "{filepath}".')
 
-                for i, url in enumerate(urls):
-                    segment_filepath = filepath + '.part' + str(i+1)
-
-                    with open(segment_filepath, 'rb') as fin:
-                        content = fin.read(Path(segment_filepath).stat().st_size)
-                    Path(segment_filepath).unlink()
+                for merge_file in merge_files:
+                    with open(merge_file, 'rb') as fin:
+                        content = fin.read(Path(merge_file).stat().st_size)
+                    Path(merge_file).unlink()
 
                     fout.write(content)
 
@@ -412,7 +430,10 @@ def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool
         print(f'Downloading file "{filepath}"......Done')
     logger.info(f'Downloading file "{filepath}" from "{url}"......Done')
 
-    return is_success
+    if is_success:
+        return filepath
+    else:
+        return ''
 
 
 def download_video(url: str, download_dir: str = None, filename: str = None, is_silent: bool = False) -> bool:
@@ -479,7 +500,7 @@ def download_video(url: str, download_dir: str = None, filename: str = None, is_
 
         # Check if we get the video url.
         if len(video_url) > 0:
-            if not download_file(video_url, str(Path(download_dir, filename + '.mp4')), is_silent):
+            if len(download_file(video_url, str(Path(download_dir, filename + '.mp4')), is_silent)) == 0:
                 return False
         else:
             logger.debug('Failed to get video url.')
@@ -499,7 +520,7 @@ def download_video(url: str, download_dir: str = None, filename: str = None, is_
         # Check if we get the video url.
         if len(video_url) > 0 and video_url.find('porn5f.com') != -1:
             video_url = video_url.replace('&amp;', '&')
-            if not download_file(video_url, str(Path(download_dir, filename + '.ts')), is_silent):
+            if len(download_file(video_url, str(Path(download_dir, filename + '.ts')), is_silent)) == 0:
                 return False
         else:
             logger.debug('Failed to get video url.')
@@ -518,7 +539,7 @@ def download_video(url: str, download_dir: str = None, filename: str = None, is_
 
         # Check if we get the video url.
         if len(video_url) > 0:
-            if not download_file(video_url, str(Path(download_dir, filename + '.ts')), is_silent):
+            if len(download_file(video_url, str(Path(download_dir, filename + '.ts')), is_silent)) == 0:
                 return False
         else:
             logger.debug('Failed to get video url.')
@@ -546,7 +567,7 @@ def download_video(url: str, download_dir: str = None, filename: str = None, is_
 
         # Check if we get the video url.
         if len(video_url) > 0:
-            if not download_file(video_url, str(Path(download_dir, filename + '.mp4')), is_silent):
+            if len(download_file(video_url, str(Path(download_dir, filename + '.mp4')), is_silent)) == 0:
                 return False
         else:
             logger.debug('Failed to get video url.')
