@@ -39,6 +39,9 @@ To get help, please open terminal and run the following command.
 Then, follow the instructions to enjoy this program.
 
 # Changelog
+- 02 / 13 2023
+  - Fix bug in get_max_resolution_url().
+
 - 01 / 08 2023
   - Fix bug for filepath clipping in download_file().
 

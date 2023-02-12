@@ -151,7 +151,7 @@ def get_max_resolution_url(urls: List[str]) -> str:
 
         if start_index != -1:
             start_index += 4
-            resolution = fetch_string(url, start_index, 'p.')
+            resolution = fetch_string(url, start_index, 'p')
 
             if len(resolution) > 0:
                 resolution = int(resolution)
@@ -159,7 +159,7 @@ def get_max_resolution_url(urls: List[str]) -> str:
 
     if len(resolutions) > 0:
         resolutions.sort(reverse=True)
-        target_resolution = 'hls-' + str(resolutions[0]) + 'p.'
+        target_resolution = 'hls-' + str(resolutions[0]) + 'p'
 
         for url in urls:
             if url.find(target_resolution) != -1:
