@@ -158,14 +158,20 @@ def get_max_resolution_url(urls: List[str]) -> str:
                 resolutions.append(resolution)
 
     if len(resolutions) > 0:
-        resolutions.sort(reverse=True)
-        target_resolution = 'hls-' + str(resolutions[0]) + 'p'
+        if len(resolutions) == len(list(set(resolutions))):
+            resolutions.sort(reverse=True)
+            target_resolution = 'hls-' + str(resolutions[0]) + 'p'
 
-        for url in urls:
-            if url.find(target_resolution) != -1:
-                logger.debug(f'Max resolution is set to url "{url}".')
-                logger.debug('Checking max resolution segment......Done')
-                return url
+            for url in urls:
+                if url.find(target_resolution) != -1:
+                    logger.debug(f'Max resolution is set to url "{url}".')
+                    logger.debug('Checking max resolution segment......Done')
+                    return url
+
+        else:
+            logger.debug('No resolution url found. (Resolutions are the same.)')
+            logger.debug('Checking max resolution segment......Done')
+            return ''
 
     else:
         logger.debug('No resolution url found.')
@@ -280,7 +286,7 @@ def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool
     for retry_count in range(10):
         if is_top:
             print(f'\nTry to download for {retry_count + 1} time(s).')
-        logger.info(f'\nTry to download for {retry_count + 1} time(s).')
+        logger.info(f'Try to download for {retry_count + 1} time(s).')
 
         # Open file request to server and get file size.
         request = requests.get(url, stream=True, headers=REQUEST_HEADER, verify=False)
@@ -377,6 +383,10 @@ def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool
 
             # Check if urls in playlist are different resolution.
             max_resolution_url = get_max_resolution_url(urls)
+
+            logger.info(f'urls: {urls}')
+            logger.info(f'max_resolution_url: {max_resolution_url}')
+
             if len(max_resolution_url) > 0:
                 urls = [max_resolution_url,]
 
