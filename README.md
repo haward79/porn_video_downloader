@@ -39,6 +39,9 @@ To get help, please open terminal and run the following command.
 Then, follow the instructions to enjoy this program.
 
 # Changelog
+- 03 / 18 2023
+  - Fix bugs for accumulated hidden firefoxes!!
+
 - 02 / 24 2023
   - Fix bug in get_max_resolution_url().
 

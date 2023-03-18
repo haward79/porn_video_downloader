@@ -179,6 +179,16 @@ def get_max_resolution_url(urls: List[str]) -> str:
         return ''
 
 
+def create_selenium_instance() -> webdriver.firefox.webdriver.WebDriver:
+
+    firefox_options = webdriver.FirefoxOptions()
+    firefox_options.add_argument('-headless')
+
+    firefox = webdriver.Firefox(options=firefox_options)
+
+    return firefox
+
+
 def clear_selenium_files() -> None:
 
     logger.debug('Removing geckodriver log file.')
@@ -194,10 +204,7 @@ def clear_selenium_files() -> None:
 
 def get_website_code(url: str) -> str:
 
-    firefox_options = webdriver.FirefoxOptions()
-    firefox_options.add_argument('-headless')
-
-    firefox = webdriver.Firefox(options=firefox_options)
+    firefox = create_selenium_instance()
 
     if url.find('85tube.com') != -1:
         preload_times = 5
@@ -211,15 +218,17 @@ def get_website_code(url: str) -> str:
 
         try:
             firefox.get(url)
+
         except InvalidArgumentException as e:
             logger.debug(f'Invalid url "{url}".')
+            firefox.quit()
             return ''
 
         sleep(1)
 
     source_code = firefox.page_source
 
-    firefox.close()
+    firefox.quit()
 
     return source_code
 
@@ -481,15 +490,11 @@ def download_video(url: str, download_dir: str = None, filename: str = None, is_
     Download video.
     '''
 
-    firefox_options = webdriver.FirefoxOptions()
-    firefox_options.add_argument('-headless')
-
-    firefox = webdriver.Firefox(options=firefox_options)
-
     # It's from 85tube.com .
     if url.find('85tube.com') != -1:
         logger.debug('It\'s a url from 85tube.')
         video_url = ''
+        firefox = create_selenium_instance()
 
         # Get video url from source code of web page.
         for retry_counter in range(5):
@@ -506,7 +511,7 @@ def download_video(url: str, download_dir: str = None, filename: str = None, is_
                 video_url = video.get_attribute('src')
                 break
 
-        firefox.close()
+        firefox.quit()
 
         # Check if we get the video url.
         if len(video_url) > 0:
@@ -559,7 +564,7 @@ def download_video(url: str, download_dir: str = None, filename: str = None, is_
     elif url.find('tktube.com') != -1:
         logger.debug('It\'s a url from tktube.')
         video_url = ''
-
+        firefox = create_selenium_instance()
 
         # Fetch video url.
         firefox.get(url)
@@ -573,7 +578,10 @@ def download_video(url: str, download_dir: str = None, filename: str = None, is_
 
         except:
             logger.debug('Failed to get video url.')
+            firefox.quit()
             return False
+
+        firefox.quit()
 
         # Check if we get the video url.
         if len(video_url) > 0:
