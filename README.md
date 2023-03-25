@@ -39,6 +39,9 @@ To get help, please open terminal and run the following command.
 Then, follow the instructions to enjoy this program.
 
 # Changelog
+- 03 / 26 2023
+  - Edit copyright.
+
 - 03 / 18 2023
   - Fix bugs for accumulated hidden firefoxes!!
 
@@ -113,10 +116,11 @@ Then, follow the instructions to enjoy this program.
 
 # Copyright
 This program is written by [haward79](https://www.haward79.tw/).
-All rights reserved by haward79.
 
-Everyone can spread the program with name-tagged.
-However, editing is NOT allowed.
+This is a COPYLEFT program!
+Everyone can edit and share this program to others for free(without payment and with freedom) with name-tagged.
+
+Please note: Any program developed based on this program needs to follow the copyleft policy!
 
 **The videos downloaded by this program is not responsible by the author of program.  
 Please use this program with care.**
