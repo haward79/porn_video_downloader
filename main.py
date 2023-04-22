@@ -14,7 +14,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException, InvalidArgumentException
+from selenium.common.exceptions import NoSuchElementException, InvalidArgumentException, WebDriverException
 
 # Disable urllib TLS certificate warning.
 urllib3.disable_warnings()
@@ -202,33 +202,82 @@ def clear_selenium_files() -> None:
     logger.debug('Removing geckodriver log file......Done')
 
 
-def get_website_code(url: str) -> str:
+def selenium_get_url(firefox: webdriver.firefox.webdriver.WebDriver, url: str) -> bool:
+
+    try:
+        logger.debug(f'Loading url "{url}" .')
+        firefox.get(url)
+
+    except InvalidArgumentException as e:
+        logger.debug(f'Invalid url "{url}".')
+        return False
+
+    except WebDriverException as e:
+        # A DNS error.
+        if str(e).find('neterror?e=dnsNotFound') != -1:
+            logger.debug('DNS related error occurred. It may due to too many concurrent connection to your DNS server.')
+            return selenium_get_url(firefox, url)
+
+        # NOT an DNS error.
+        else:
+            logger.debug(f'Error occurred. Here is the error message.\n{str(e)}')
+            return False
+
+    return True
+
+
+def selenium_load_url(url: str, preload_times: int = 0) -> webdriver.firefox.webdriver.WebDriver:
 
     firefox = create_selenium_instance()
 
-    if url.find('85tube.com') != -1:
-        preload_times = 5
+    # Preload url.
+    if preload_times >= 0:
+        logger.debug('Do preload......')
+
+        for i in range(preload_times):
+            logger.debug(f'Do preload......{i+1}/{preload_times}')
+
+            if selenium_get_url(firefox, url):
+                logger.debug(f'Do preload......{i + 1}/{preload_times} Success')
+            else:
+                logger.debug(f'Do preload......{i + 1}/{preload_times} Failed')
+
+            sleep(1)
+
+        logger.debug('Do preload......Done')
+
     else:
-        preload_times = 1
+        print('Invalid parameter: preload_times should be a integer equal or greater than 0.')
+        logger.info('Invalid parameter: preload_times should be a integer equal or greater than 0.')
+        firefox.quit()
+        return
 
-    logger.debug(f'preload_times is set to {preload_times}.')
+    # Formally load url.
+    logger.debug(f'Formally load url "{url}" .')
 
-    for i in range(preload_times):
-        logger.debug(f'[{i + 1}] preload web page.')
+    while not selenium_get_url(firefox, url):
+        logger.debug(f'Failed to load url "{url}" formally. Keep trying.')
 
-        try:
-            firefox.get(url)
+    return firefox
 
-        except InvalidArgumentException as e:
-            logger.debug(f'Invalid url "{url}".')
-            firefox.quit()
-            return ''
 
-        sleep(1)
+def get_website_code(url: str) -> str:
 
-    source_code = firefox.page_source
+    if url.find('85tube.com') != -1:
+        firefox = selenium_load_url(url, preload_times=5)
+    else:
+        firefox = selenium_load_url(url)
 
-    firefox.quit()
+    if firefox is not None:
+        source_code = firefox.page_source
+        firefox.quit()
+
+        logger.debug(f'Successfully get source code for the url.')
+
+    else:
+        source_code = ''
+
+        logger.debug(f'Failed to get source code for the url due to previous error.')
 
     return source_code
 
@@ -274,7 +323,7 @@ def clip_filename(filepath: str) -> str:
     return clipped_filepath
 
 
-def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool = True) -> str:
+def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool = True, referer_url: str = None) -> str:
 
     is_success = False
 
@@ -298,7 +347,11 @@ def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool
         logger.info(f'Try to download for {retry_count + 1} time(s).')
 
         # Open file request to server and get file size.
-        request = requests.get(url, stream=True, headers=REQUEST_HEADER, verify=False)
+        if referer_url is None:
+            request = requests.get(url, stream=True, headers=REQUEST_HEADER, verify=False)
+        else:
+            request = requests.get(url, stream=True, headers={**REQUEST_HEADER, **{'Referer': referer_url}}, verify=False)
+
         content_bytes = request.headers.get('content-length')
 
         # Format file size and output it.
@@ -343,6 +396,9 @@ def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool
                 # logger.info(f'File downloaded for {downloaded_bytes} bytes in {content_bytes} bytes.')
 
             print()
+
+        # Release request.
+        request.close()
 
         '''
         Check integrity of downloaded file.
@@ -411,7 +467,7 @@ def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool
             merge_files = []
             for i, url in enumerate(urls):
                 logger.debug(f'Downloading segment part {i+1}.')
-                filepath_subfile = download_file(url, filepath_base + '.part' + str(i+1), is_silent, False)
+                filepath_subfile = download_file(url, filepath_base + '.part' + str(i+1), is_silent, False, referer_url)
                 merge_files.append(filepath_subfile)
                 logger.debug(f'Downloading segment part {i + 1}......Done')
                 logger.debug(f'Segment file is saved to "{filepath_subfile}".')
@@ -431,6 +487,7 @@ def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool
             # Merge segments and remove it from disk.
             with open(filepath, 'wb') as fout:
                 logger.debug(f'Merging segment parts to "{filepath}".')
+                logger.debug(f'Segment parts are listed: "[{", ".join(merge_files)}]".')
 
                 for merge_file in merge_files:
                     with open(merge_file, 'rb') as fin:
@@ -494,12 +551,11 @@ def download_video(url: str, download_dir: str = None, filename: str = None, is_
     if url.find('85tube.com') != -1:
         logger.debug('It\'s a url from 85tube.')
         video_url = ''
-        firefox = create_selenium_instance()
 
         # Get video url from source code of web page.
         for retry_counter in range(5):
             logger.debug(f'[{retry_counter + 1}] Try to locate video element on web page.')
-            firefox.get(url)
+            firefox = selenium_load_url(url)
 
             try:
                 video = firefox.find_element(By.CSS_SELECTOR, '#kt_player video')
@@ -564,20 +620,19 @@ def download_video(url: str, download_dir: str = None, filename: str = None, is_
     elif url.find('tktube.com') != -1:
         logger.debug('It\'s a url from tktube.')
         video_url = ''
-        firefox = create_selenium_instance()
 
         # Fetch video url.
-        firefox.get(url)
+        firefox = selenium_load_url(url)
 
         try:
             show_video_button = firefox.find_element(By.CSS_SELECTOR, '.fp-ui')
-            firefox.execute_script("arguments[0].click();", show_video_button)
+            firefox.execute_script('arguments[0].click();', show_video_button)
             WebDriverWait(firefox, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'video[src*=\'tktube.com/get_file/\']')))
             video = firefox.find_element(By.CSS_SELECTOR, 'video[src*=\'tktube.com/get_file/\']')
             video_url = video.get_attribute('src')
 
         except:
-            logger.debug('Failed to get video url.')
+            logger.debug('Failed to get video url. Exception occurred.')
             firefox.quit()
             return False
 
@@ -588,7 +643,31 @@ def download_video(url: str, download_dir: str = None, filename: str = None, is_
             if len(download_file(video_url, str(Path(download_dir, filename + '.mp4')), is_silent)) == 0:
                 return False
         else:
-            logger.debug('Failed to get video url.')
+            logger.debug('Failed to get video url. The url is empty.')
+            return False
+
+    # It's from missav.com .
+    elif url.find('missav.com') != -1:
+        logger.debug('It\'s a url from missav.')
+        video_url = ''
+
+        # Fetch video url.
+        firefox = selenium_load_url(url)
+
+        entries = firefox.execute_script('return window.performance.getEntries();')
+
+        for entry in entries:
+            if entry['name'].find('.m3u8') != -1:
+                video_url = entry['name']
+
+        firefox.quit()
+
+        # Check if we get the video url.
+        if len(video_url) > 0:
+            if len(download_file(video_url, str(Path(download_dir, filename + '.ts')), is_silent, referer_url=url)) == 0:
+                return False
+        else:
+            logger.debug('Failed to get video url. The url is empty.')
             return False
 
     # Not supported website.
@@ -695,6 +774,7 @@ if __name__ == '__main__':
         print('|    https://porn5f.com/       |')
         print('|    https://xvideos.com/      |')
         print('|    https://tktube.com/       |')
+        print('|    https://missav.com/       |')
         print('+------------------------------+')
 
         # Get download directory.
@@ -715,7 +795,7 @@ if __name__ == '__main__':
                     print('Download directory must be a existed directory.')
 
         print(f'\nDownload directory is set to "{download_dir}".')
-        logger.info(f'Parameter download_dir is set to "{args.download_dir}" manually.')
+        logger.info(f'Parameter download_dir is set to "{download_dir}" manually.')
 
         while interactive_mode(download_dir, args.is_silent):
             pass

@@ -6,6 +6,7 @@ This program supports videos on the following websites:
 - porn5f.com
 - 85tube.com
 - tktube.com
+- missav.com
 
 # Specification
 - File or keyboard input are both supported for video urls.
@@ -39,6 +40,10 @@ To get help, please open terminal and run the following command.
 Then, follow the instructions to enjoy this program.
 
 # Changelog
+- 04 / 22 2023
+  - Add support for missav.com .
+  - Add DNS concurrent restriction catcher.
+
 - 03 / 26 2023
   - Edit copyright.
 
