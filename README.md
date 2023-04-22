@@ -41,8 +41,11 @@ Then, follow the instructions to enjoy this program.
 
 # Changelog
 - 04 / 22 2023
+  - Add DNS concurrent restriction catcher for requests library.
+
+- 04 / 22 2023
   - Add support for missav.com .
-  - Add DNS concurrent restriction catcher.
+  - Add DNS concurrent restriction catcher for selenium.
 
 - 03 / 26 2023
   - Edit copyright.

@@ -346,11 +346,26 @@ def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool
             print(f'\nTry to download for {retry_count + 1} time(s).')
         logger.info(f'Try to download for {retry_count + 1} time(s).')
 
-        # Open file request to server and get file size.
+        # Set request header for the next request.
         if referer_url is None:
-            request = requests.get(url, stream=True, headers=REQUEST_HEADER, verify=False)
+            request_header = REQUEST_HEADER
         else:
-            request = requests.get(url, stream=True, headers={**REQUEST_HEADER, **{'Referer': referer_url}}, verify=False)
+            request_header = {**REQUEST_HEADER, **{'Referer': referer_url}}
+
+        # Open file request to server and get file size.
+        try:
+            request = requests.get(url, stream=True, headers=referer_url, verify=False)
+
+        except requests.exceptions.ConnectionError as e:
+            # A DNS error.
+            if str(e).find('Temporary failure in name resolution') != -1:
+                logger.debug('DNS related error occurred. It may due to too many concurrent connection to your DNS server.')
+
+            # NOT an DNS error.
+            else:
+                logger.debug(f'Error occurred. Here is the error message.\n{str(e)}')
+
+            continue
 
         content_bytes = request.headers.get('content-length')
 
