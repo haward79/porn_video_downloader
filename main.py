@@ -354,7 +354,7 @@ def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool
 
         # Open file request to server and get file size.
         try:
-            request = requests.get(url, stream=True, headers=referer_url, verify=False)
+            request = requests.get(url, stream=True, headers=request_header, verify=False)
 
         except requests.exceptions.ConnectionError as e:
             # A DNS error.
