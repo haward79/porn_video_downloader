@@ -141,32 +141,71 @@ def url_list_format(urls: List[str]) -> List[str]:
     return urls
 
 
+def extract_url_resolution_xvideos(url: str) -> int:
+
+    resolution = -1
+    start_index = url.find('hls-')
+
+    if start_index != -1:
+        start_index += 4
+        resolution_ = fetch_string(url, start_index, 'p')
+
+        if len(resolution_) > 0:
+            resolution = int(resolution_)
+
+    return resolution
+
+
+def extract_url_resolution_missav(url: str) -> int:
+
+    resolution = -1
+    ending_index = url.find('/video.m3u8')
+
+    if ending_index != -1:
+        size = url[:ending_index].split('x')
+
+        if len(size) == 2 and size[0].isdigit() and size[1].isdigit():
+            resolution = int(size[1])
+
+    return resolution
+
+
 def get_max_resolution_url(urls: List[str]) -> str:
 
     logger.debug('Checking max resolution segment.')
     resolutions = []
 
     for i, url in enumerate(urls):
-        start_index = url.find('hls-')
+        resolution_xvideos = extract_url_resolution_xvideos(url)
+        resolution_missav = extract_url_resolution_missav(url)
 
-        if start_index != -1:
-            start_index += 4
-            resolution = fetch_string(url, start_index, 'p')
-
-            if len(resolution) > 0:
-                resolution = int(resolution)
-                resolutions.append(resolution)
+        if resolution_xvideos > 0:
+            resolutions.append(resolution_xvideos)
+        elif resolution_missav > 0:
+            resolutions.append(resolution_missav)
 
     if len(resolutions) > 0:
         if len(resolutions) == len(list(set(resolutions))):
             resolutions.sort(reverse=True)
-            target_resolution = 'hls-' + str(resolutions[0]) + 'p'
+            target_resolution = resolutions[0]
 
-            for url in urls:
-                if url.find(target_resolution) != -1:
-                    logger.debug(f'Max resolution is set to url "{url}".')
+            for i, url in enumerate(urls):
+                resolution_xvideos = extract_url_resolution_xvideos(url)
+                resolution_missav = extract_url_resolution_missav(url)
+
+                if resolution_xvideos > 0 and resolution_xvideos == target_resolution:
+                    logger.debug(f'Max resolution is set to url "{url}" for xvideos.')
                     logger.debug('Checking max resolution segment......Done')
                     return url
+
+                elif resolution_missav > 0 and resolution_missav == target_resolution:
+                    logger.debug(f'Max resolution is set to url "{url}" for missav.')
+                    logger.debug('Checking max resolution segment......Done')
+                    return url
+
+            logger.debug('No resolution url found. (Url has existed but missing now.)')
+            logger.debug('Checking max resolution segment......Done')
+            return ''
 
         else:
             logger.debug('No resolution url found. (Resolutions are the same.)')
@@ -470,7 +509,7 @@ def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool
             if len(max_resolution_url) > 0:
                 urls = [max_resolution_url,]
 
-            # Fix playlist without full url.
+            # Fix url without full url in playlist.
             for i, url in enumerate(urls):
                 if url.startswith('https://') or url.startswith('http://'):
                     pass
@@ -580,9 +619,10 @@ def download_video(url: str, download_dir: str = None, filename: str = None, is_
             else:
                 logger.debug('Successful to locate video element on web page.')
                 video_url = video.get_attribute('src')
+                firefox.quit()
                 break
 
-        firefox.quit()
+            firefox.quit()
 
         # Check if we get the video url.
         if len(video_url) > 0:
@@ -666,16 +706,27 @@ def download_video(url: str, download_dir: str = None, filename: str = None, is_
         logger.debug('It\'s a url from missav.')
         video_url = ''
 
-        # Fetch video url.
-        firefox = selenium_load_url(url)
+        for retry_counter in range(5):
+            logger.debug(f'[{retry_counter + 1}] Try to fetch video url from web page.')
 
-        entries = firefox.execute_script('return window.performance.getEntries();')
+            # Fetch video url.
+            firefox = selenium_load_url(url)
+            sleep(3)
+            entries = firefox.execute_script('return window.performance.getEntries();')
 
-        for entry in entries:
-            if entry['name'].find('.m3u8') != -1:
-                video_url = entry['name']
+            for entry in entries:
+                if entry['name'].find('playlist.m3u8') != -1:
+                    video_url = entry['name']
 
-        firefox.quit()
+            if len(video_url) > 0:
+                logger.debug('Successful to fetch video url from web page.')
+                firefox.quit()
+                break
+            else:
+                logger.debug('Failed to fetch video url from web page.')
+                sleep(5)
+
+            firefox.quit()
 
         # Check if we get the video url.
         if len(video_url) > 0:

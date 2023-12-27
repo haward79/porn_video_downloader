@@ -40,6 +40,9 @@ To get help, please open terminal and run the following command.
 Then, follow the instructions to enjoy this program.
 
 # Changelog
+- 12 / 28 2023
+  - Fix bug for videos from missav.com .
+
 - 04 / 29 2023
   - Fix bug for videos from missav.com .
 
