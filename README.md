@@ -40,6 +40,9 @@ To get help, please open terminal and run the following command.
 Then, follow the instructions to enjoy this program.
 
 # Changelog
+- 01 / 05 2024
+  - Add future work section in README file.
+
 - 12 / 28 2023
   - Fix bug for videos from missav.com .
 
@@ -127,6 +130,10 @@ Then, follow the instructions to enjoy this program.
   - Add specification section in README.md .
   - Modify playlist download code in main.py .
   - Add progress bar in downloadFile() and playlistToTs() in main.py .
+
+# Future work
+- Use tqdm library to show download progress.
+- Add multi-thread support during download.
 
 # Copyright
 This program is written by [haward79](https://www.haward79.tw/).
