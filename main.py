@@ -14,7 +14,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException, InvalidArgumentException, WebDriverException
+from selenium.common.exceptions import NoSuchElementException, InvalidArgumentException, WebDriverException, TimeoutException
 
 # Disable urllib TLS certificate warning.
 urllib3.disable_warnings()
@@ -682,12 +682,13 @@ def download_video(url: str, download_dir: str = None, filename: str = None, is_
         try:
             show_video_button = firefox.find_element(By.CSS_SELECTOR, '.fp-ui')
             firefox.execute_script('arguments[0].click();', show_video_button)
-            WebDriverWait(firefox, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'video[src*=\'tktube.com/get_file/\']')))
-            video = firefox.find_element(By.CSS_SELECTOR, 'video[src*=\'tktube.com/get_file/\']')
+            WebDriverWait(firefox, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, "video[src*='/get_file/']")))
+            video = firefox.find_element(By.CSS_SELECTOR, "video[src*='/get_file/']")
             video_url = video.get_attribute('src')
 
-        except:
+        except (NoSuchElementException, TimeoutException) as e:
             logger.debug('Failed to get video url. Exception occurred.')
+            logger.debug(e)
             firefox.quit()
             return False
 

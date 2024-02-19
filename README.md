@@ -40,6 +40,9 @@ To get help, please open terminal and run the following command.
 Then, follow the instructions to enjoy this program.
 
 # Changelog
+- 02 / 19 2024
+  - Fix bug for tktube.com .
+
 - 01 / 05 2024
   - Add future work section in README file.
 
