@@ -4,7 +4,7 @@ This is an online video downloader.
 This program supports videos on the following websites:
 - xvideos.com
 - porn5f.com
-- 85tube.com
+- 85po.com
 - tktube.com
 - missav.com
 
@@ -40,6 +40,10 @@ To get help, please open terminal and run the following command.
 Then, follow the instructions to enjoy this program.
 
 # Changelog
+- 05 / 23 2024
+  - Remove support for 85tube.com .
+  - Add support for 85po.com .
+
 - 02 / 19 2024
   - Fix bug for tktube.com .
 

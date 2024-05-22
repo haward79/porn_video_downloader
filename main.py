@@ -302,7 +302,7 @@ def selenium_load_url(url: str, preload_times: int = 0) -> webdriver.firefox.web
 
 def get_website_code(url: str) -> str:
 
-    if url.find('85tube.com') != -1:
+    if url.find('85po.com') != -1:
         firefox = selenium_load_url(url, preload_times=5)
     else:
         firefox = selenium_load_url(url)
@@ -601,9 +601,9 @@ def download_video(url: str, download_dir: str = None, filename: str = None, is_
     Download video.
     '''
 
-    # It's from 85tube.com .
-    if url.find('85tube.com') != -1:
-        logger.debug('It\'s a url from 85tube.')
+    # It's from 85po.com .
+    if url.find('85po.com') != -1:
+        logger.debug('It\'s a url from 85po.')
         video_url = ''
 
         # Get video url from source code of web page.
@@ -837,7 +837,7 @@ if __name__ == '__main__':
         print('|                              |')
         print('+------------------------------+')
         print('|  ' + BashColor.GREEN + 'Supported Sites:' + BashColor.CLEAR + '            |')
-        print('|    https://85tube.com/       |')
+        print('|    https://85po.com/         |')
         print('|    https://porn5f.com/       |')
         print('|    https://xvideos.com/      |')
         print('|    https://tktube.com/       |')
