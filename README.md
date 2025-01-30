@@ -7,6 +7,7 @@ This program supports videos on the following websites:
 - 85po.com
 - tktube.com
 - missav.com
+- iwant-sex.com
 
 # Specification
 - File or keyboard input are both supported for video urls.
@@ -40,6 +41,12 @@ To get help, please open terminal and run the following command.
 Then, follow the instructions to enjoy this program.
 
 # Changelog
+- 01 / 30 2025
+  - Fix bugs.
+  - Use tqdm for progress bar.
+  - Add iwant-sex.com support.
+  - Add self test feature.
+
 - 05 / 23 2024
   - Remove support for 85tube.com .
   - Add support for 85po.com .
@@ -139,8 +146,12 @@ Then, follow the instructions to enjoy this program.
   - Add progress bar in downloadFile() and playlistToTs() in main.py .
 
 # Future work
-- Use tqdm library to show download progress.
+- Fix bugs for tk (download_file() request->selenium), iwant
 - Add multi-thread support during download.
+- Remove suffix from website title
+- Use a tmp name during download and return final filename at complete
+- Optimize self test func
+- ffmpeg format conversion for ts
 
 # Copyright
 This program is written by [haward79](https://www.haward79.tw/).
