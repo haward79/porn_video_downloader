@@ -13,7 +13,7 @@ from tqdm import tqdm
 from bs4 import BeautifulSoup
 from ffmpeg import FFmpeg
 from ffmpeg.errors import FFmpegError
-from urllib.parse import urljoin
+from urllib.parse import urlparse, urljoin
 import urllib3
 import requests
 from selenium import webdriver
@@ -51,30 +51,30 @@ def self_test_data() -> List[Dict[str,str|int|None]]:
             'duration': None,
             'size': None
         },
-        {
-            'url': 'https://www.porn5f.com/video/127685/%E5%90%83%E8%82%89%E6%A3%92',
-            'filepath': 'download/吃肉棒 - 五樓自拍.ts',
-            'duration': None,
-            'size': 53914264
-        },
-        {
-            'url': 'https://www.xvideos.com/video.hmcoeofdd90/_',
-            'filepath': 'download/[無碼]女王大人幫我擼到射 - XVIDEOS.COM.ts',
-            'duration': None,
-            'size': 8825660
-        },
-        {
-            'url': 'https://tktube.com/videos/296295/011925-01/',
-            'filepath': 'download/天然むすめ 011925_01 息継ぎするのを忘れるくらい一生懸命！喉奥までぶっこむ連続ご奉仕！細川洋子.mp4',
-            'duration': None,
-            'size': 8860
-        },
-        {
-            'url': 'https://iwant-sex.com/video/24749.html',
-            'filepath': None,
-            'duration': None,
-            'size': None
-        },
+        # {
+        #     'url': 'https://www.porn5f.com/video/127685/%E5%90%83%E8%82%89%E6%A3%92',
+        #     'filepath': 'download/吃肉棒 - 五樓自拍.ts',
+        #     'duration': None,
+        #     'size': 53914264
+        # },
+        # {
+        #     'url': 'https://www.xvideos.com/video.hmcoeofdd90/_',
+        #     'filepath': 'download/[無碼]女王大人幫我擼到射 - XVIDEOS.COM.ts',
+        #     'duration': None,
+        #     'size': 8825660
+        # },
+        # {
+        #     'url': 'https://tktube.com/videos/296295/011925-01/',
+        #     'filepath': 'download/天然むすめ 011925_01 息継ぎするのを忘れるくらい一生懸命！喉奥までぶっこむ連続ご奉仕！細川洋子.mp4',
+        #     'duration': None,
+        #     'size': 8860
+        # },
+        # {
+        #     'url': 'https://iwant-sex.com/video/24749.html',
+        #     'filepath': None,
+        #     'duration': None,
+        #     'size': None
+        # },
     ]
 
 
@@ -246,6 +246,8 @@ def create_selenium_instance() -> WebDriver:
 
     firefox = webdriver.Firefox(options=firefox_options)
 
+    firefox.set_page_load_timeout(60)
+
     return firefox
 
 
@@ -264,11 +266,12 @@ def clear_selenium_files() -> None:
 def selenium_get_url(firefox: webdriver.firefox.webdriver.WebDriver, url: str, referer_url: str | None = None) -> bool:
     try:
         if referer_url is None or len(referer_url) == 0:
-            referer_url = url
+            referer_url = urlparse(url).scheme + '://' + urlparse(url).netloc
 
-        logger.debug(f'Loading referer url "{url}" .')
+        logger.debug(f'Loading referer url "{referer_url}" .')
         firefox.get(referer_url)
-        sleep(3)
+
+        sleep(1)
 
         logger.debug(f'Loading url "{url}" .')
         firefox.get(url)

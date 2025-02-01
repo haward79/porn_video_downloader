@@ -41,6 +41,9 @@ To get help, please open terminal and run the following command.
 Then, follow the instructions to enjoy this program.
 
 # Changelog
+- 02 / 02 2025
+  - Fix bugs.
+
 - 02 / 01 2025
   - Fix bugs.
   - Add PreProcess module.
