@@ -13,10 +13,11 @@ from tqdm import tqdm
 from bs4 import BeautifulSoup
 from ffmpeg import FFmpeg
 from ffmpeg.errors import FFmpegError
-import urllib
+from urllib.parse import urljoin
 import urllib3
 import requests
 from selenium import webdriver
+from selenium.webdriver.firefox.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -79,6 +80,8 @@ def self_test_data() -> List[Dict[str,str|int|None]]:
 
 # Define function.
 def init_logger(work_dir: str) -> logging.Logger:
+    global logger
+
     filename = Path(work_dir, 'CHECKME.log')
     logging.basicConfig(filename=filename, level=logging.CRITICAL, format='%(asctime)s|%(levelname)s|%(message)s')
 
@@ -237,7 +240,7 @@ def get_max_resolution_url(urls: List[str]) -> str:
         return ''
 
 
-def create_selenium_instance() -> webdriver.firefox.webdriver.WebDriver:
+def create_selenium_instance() -> WebDriver:
     firefox_options = webdriver.FirefoxOptions()
     # firefox_options.add_argument('-headless')
 
@@ -289,7 +292,7 @@ def selenium_get_url(firefox: webdriver.firefox.webdriver.WebDriver, url: str, r
     return True
 
 
-def selenium_load_url(url: str, preload_times: int = 0, referer_url: str = None) -> webdriver.firefox.webdriver.WebDriver:
+def selenium_load_url(url: str, preload_times: int = 0, referer_url: str = None) -> WebDriver | None:
     firefox = create_selenium_instance()
 
     # Preload url.
@@ -519,7 +522,7 @@ def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool
                 if url.startswith('https://') or url.startswith('http://'):
                     pass
                 else:
-                    urls[i] = urllib.parse.urljoin(original_url, url)
+                    urls[i] = urljoin(original_url, url)
 
             # Download all segments.
             filepath_base = filepath
@@ -614,18 +617,22 @@ def download_video(url: str, download_dir: str | None = None, filename: str | No
             logger.debug(f'[{retry_counter + 1}] Try to locate video element on web page.')
             firefox = selenium_load_url(url)
 
-            try:
-                video = firefox.find_element(By.CSS_SELECTOR, '#kt_player video')
-            except NoSuchElementException:
-                logger.debug('Failed to locate video element on web page.')
-                sleep(1)
-            else:
-                logger.debug('Successful to locate video element on web page.')
-                video_url = video.get_attribute('src')
-                firefox.quit()
-                break
+            if firefox is not None:
+                try:
+                    video = firefox.find_element(By.CSS_SELECTOR, '#kt_player video')
+                except NoSuchElementException:
+                    logger.debug('Failed to locate video element on web page.')
+                    sleep(1)
+                else:
+                    logger.debug('Successful to locate video element on web page.')
+                    video_url = video.get_attribute('src')
+                    firefox.quit()
+                    break
 
-            firefox.quit()
+                firefox.quit()
+
+            else:
+                logger.debug('Failed to get browser driver.')
 
         # Check if we get the video url.
         if len(video_url) > 0:
@@ -681,20 +688,24 @@ def download_video(url: str, download_dir: str | None = None, filename: str | No
         # Fetch video url.
         firefox = selenium_load_url(url)
 
-        try:
-            show_video_button = firefox.find_element(By.CSS_SELECTOR, '.fp-ui')
-            firefox.execute_script('arguments[0].click();', show_video_button)
-            WebDriverWait(firefox, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, "video[src*='/get_file/']")))
-            video = firefox.find_element(By.CSS_SELECTOR, "video[src*='/get_file/']")
-            video_url = video.get_attribute('src')
+        if firefox is not None:
+            try:
+                show_video_button = firefox.find_element(By.CSS_SELECTOR, '.fp-ui')
+                firefox.execute_script('arguments[0].click();', show_video_button)
+                WebDriverWait(firefox, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, "video[src*='/get_file/']")))
+                video = firefox.find_element(By.CSS_SELECTOR, "video[src*='/get_file/']")
+                video_url = video.get_attribute('src')
 
-        except (NoSuchElementException, TimeoutException) as e:
-            logger.debug('Failed to get video url. Exception occurred.')
-            logger.debug(e)
+            except (NoSuchElementException, TimeoutException) as e:
+                logger.debug('Failed to get video url. Exception occurred.')
+                logger.debug(e)
+                firefox.quit()
+                return False
+
             firefox.quit()
-            return False
 
-        firefox.quit()
+        else:
+            logger.debug('Failed to get browser driver.')
 
         # Check if we get the video url.
         if len(video_url) > 0:
@@ -714,22 +725,27 @@ def download_video(url: str, download_dir: str | None = None, filename: str | No
 
             # Fetch video url.
             firefox = selenium_load_url(url)
-            sleep(3)
-            entries = firefox.execute_script('return window.performance.getEntries();')
 
-            for entry in entries:
-                if entry['name'].find('playlist.m3u8') != -1:
-                    video_url = entry['name']
+            if firefox is not None:
+                sleep(3)
+                entries = firefox.execute_script('return window.performance.getEntries();')
 
-            if len(video_url) > 0:
-                logger.debug('Successful to fetch video url from web page.')
+                for entry in entries:
+                    if entry['name'].find('playlist.m3u8') != -1:
+                        video_url = entry['name']
+
+                if len(video_url) > 0:
+                    logger.debug('Successful to fetch video url from web page.')
+                    firefox.quit()
+                    break
+                else:
+                    logger.debug('Failed to fetch video url from web page.')
+                    sleep(5)
+
                 firefox.quit()
-                break
-            else:
-                logger.debug('Failed to fetch video url from web page.')
-                sleep(5)
 
-            firefox.quit()
+            else:
+                logger.debug('Failed to get browser driver.')
 
         # Check if we get the video url.
         if len(video_url) > 0:
@@ -749,22 +765,27 @@ def download_video(url: str, download_dir: str | None = None, filename: str | No
 
             # Fetch video url.
             firefox = selenium_load_url(url, 0, url)
-            sleep(3)
-            entries = firefox.execute_script('return window.performance.getEntries();')
 
-            for entry in entries:
-                if entry['name'].find('.m3u8') != -1:
-                    video_url = entry['name']
+            if firefox is not None:
+                sleep(3)
+                entries = firefox.execute_script('return window.performance.getEntries();')
 
-            if len(video_url) > 0:
-                logger.debug('Successful to fetch video url from web page.')
+                for entry in entries:
+                    if entry['name'].find('.m3u8') != -1:
+                        video_url = entry['name']
+
+                if len(video_url) > 0:
+                    logger.debug('Successful to fetch video url from web page.')
+                    firefox.quit()
+                    break
+                else:
+                    logger.debug('Failed to fetch video url from web page.')
+                    sleep(5)
+
                 firefox.quit()
-                break
-            else:
-                logger.debug('Failed to fetch video url from web page.')
-                sleep(5)
 
-            firefox.quit()
+            else:
+                logger.debug('Failed to get browser driver.')
 
         # Check if we get the video url.
         if len(video_url) > 0:
@@ -902,6 +923,7 @@ def main():
     # Check arguments.
     error_messages = []
     args_parser = get_args_parser()
+    args = argparse.Namespace()
 
     try:
         args = args_parser.parse_args()

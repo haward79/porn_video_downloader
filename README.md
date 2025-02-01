@@ -41,6 +41,10 @@ To get help, please open terminal and run the following command.
 Then, follow the instructions to enjoy this program.
 
 # Changelog
+- 02 / 01 2025
+  - Fix bugs.
+  - Add PreProcess module.
+
 - 01 / 30 2025
   - Fix bugs.
   - Use tqdm for progress bar.
@@ -146,11 +150,12 @@ Then, follow the instructions to enjoy this program.
   - Add progress bar in downloadFile() and playlistToTs() in main.py .
 
 # Future work
-- Fix bugs for tk (download_file() request->selenium), iwant
-- Add multi-thread support during download.
-- Remove suffix from website title
+- Add `requirements.txt`
 - Use a tmp name during download and return final filename at complete
 - Optimize self test func
+- Fix bugs for tk (download_file() request->selenium), iwant
+- Remove suffix from website title
+- Add multi-thread support during download.
 - ffmpeg format conversion for ts
 
 # Copyright
