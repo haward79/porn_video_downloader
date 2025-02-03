@@ -1,6 +1,6 @@
 
 # Import library.
-from typing import List, Dict
+from typing import Any, List, Dict
 import logging
 import argparse
 from pathlib import Path
@@ -8,12 +8,15 @@ from os import chdir
 from math import ceil
 from time import sleep
 from sys import stdout
+from string import ascii_letters, digits
+from random import choices
 import json
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 from ffmpeg import FFmpeg
+from ffmpeg import Progress as FFmpegProgress
 from ffmpeg.errors import FFmpegError
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse
 import urllib3
 import requests
 from selenium import webdriver
@@ -32,7 +35,8 @@ URL_FAILED_FILENAME = 'url_failed.txt'
 SIZE_NAMES = ('B', 'KB', 'MB', 'GB', 'TB')
 REQUEST_HEADER = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:97.0) Gecko/20100101 Firefox/97.0'}
 REQUEST_CHUNK_SIZE = 4096
-MAX_FILENAME_LENGTH = 90
+MAX_FILENAME_LENGTH = 200
+TEMP_FILE_COMPOSITION = ascii_letters + digits
 
 
 # Define class.
@@ -47,34 +51,34 @@ def self_test_data() -> List[Dict[str,str|int|None]]:
     return [
         {
             'url': 'https://www.85po.com/v/11978/gao-zhong-mei-tuo-yi-zi-pai-36/',
+            'filepath': 'download/高中妹脫衣自拍36.mp4',
+            'duration': 35.44,
+            'size': 1728293
+        },
+        {
+            'url': 'https://www.porn5f.com/video/127685/%E5%90%83%E8%82%89%E6%A3%92',
+            'filepath': 'download/吃肉棒 - 五樓自拍.mp4',
+            'duration': 137.7,
+            'size': 52113081
+        },
+        {
+            'url': 'https://www.xvideos.com/video.hmcoeofdd90/_',
+            'filepath': 'download/[無碼]女王大人幫我擼到射 - XVIDEOS.COM.mp4',
+            'duration': 141.76,
+            'size': 7822391
+        },
+        {
+            'url': 'https://tktube.com/videos/296295/011925-01/',
+            'filepath': 'download/天然むすめ 011925_01 息継ぎするのを忘れるくらい一生懸命！喉奥までぶっこむ連続ご奉仕！細川洋子.mp4',
+            'duration': None,
+            'size': 8860
+        },
+        {
+            'url': 'https://iwant-sex.com/video/24749.html',
             'filepath': None,
             'duration': None,
             'size': None
         },
-        # {
-        #     'url': 'https://www.porn5f.com/video/127685/%E5%90%83%E8%82%89%E6%A3%92',
-        #     'filepath': 'download/吃肉棒 - 五樓自拍.ts',
-        #     'duration': None,
-        #     'size': 53914264
-        # },
-        # {
-        #     'url': 'https://www.xvideos.com/video.hmcoeofdd90/_',
-        #     'filepath': 'download/[無碼]女王大人幫我擼到射 - XVIDEOS.COM.ts',
-        #     'duration': None,
-        #     'size': 8825660
-        # },
-        # {
-        #     'url': 'https://tktube.com/videos/296295/011925-01/',
-        #     'filepath': 'download/天然むすめ 011925_01 息継ぎするのを忘れるくらい一生懸命！喉奥までぶっこむ連続ご奉仕！細川洋子.mp4',
-        #     'duration': None,
-        #     'size': 8860
-        # },
-        # {
-        #     'url': 'https://iwant-sex.com/video/24749.html',
-        #     'filepath': None,
-        #     'duration': None,
-        #     'size': None
-        # },
     ]
 
 
@@ -152,6 +156,21 @@ def fetch_string(string: str, start_index: int, end_delimiter: str) -> str:
         return string[start_index:end_index]
 
 
+def generate_temp_filepath(parent: Path | None = None) -> Path:
+    if parent is None:
+        parent = Path('./')
+    elif not parent.is_dir():
+        raise FileNotFoundError(f'Directory "{str(parent)}" does not exist.')
+
+    while True:
+        filename = Path(''.join(choices(TEMP_FILE_COMPOSITION, k=10)))
+
+        if not (parent / filename).exists():
+            break
+
+    return parent / filename
+
+
 def format_url_list(urls: List[str]) -> List[str]:
     urls = urls.copy()
 
@@ -164,80 +183,6 @@ def format_url_list(urls: List[str]) -> List[str]:
     urls = list(set([url for url in urls if len(url) > 0]))
 
     return urls
-
-
-def extract_url_resolution_xvideos(url: str) -> int:
-    resolution = -1
-    start_index = url.find('hls-')
-
-    if start_index != -1:
-        start_index += 4
-        resolution_ = fetch_string(url, start_index, 'p')
-
-        if len(resolution_) > 0:
-            resolution = int(resolution_)
-
-    return resolution
-
-
-def extract_url_resolution_missav(url: str) -> int:
-    resolution = -1
-    ending_index = url.find('/video.m3u8')
-
-    if ending_index != -1:
-        size = url[:ending_index].split('x')
-
-        if len(size) == 2 and size[0].isdigit() and size[1].isdigit():
-            resolution = int(size[1])
-
-    return resolution
-
-
-def get_max_resolution_url(urls: List[str]) -> str:
-    logger.debug('Picking max resolution segment.')
-    resolutions = []
-
-    for i, url in enumerate(urls):
-        resolution_xvideos = extract_url_resolution_xvideos(url)
-        resolution_missav = extract_url_resolution_missav(url)
-
-        if resolution_xvideos > 0:
-            resolutions.append(resolution_xvideos)
-        elif resolution_missav > 0:
-            resolutions.append(resolution_missav)
-
-    if len(resolutions) > 0:
-        if len(resolutions) == len(list(set(resolutions))):
-            resolutions.sort(reverse=True)
-            target_resolution = resolutions[0]
-
-            for i, url in enumerate(urls):
-                resolution_xvideos = extract_url_resolution_xvideos(url)
-                resolution_missav = extract_url_resolution_missav(url)
-
-                if resolution_xvideos > 0 and resolution_xvideos == target_resolution:
-                    logger.debug(f'Max resolution is set to url "{url}" for xvideos.')
-                    logger.debug('Checking max resolution segment......Done')
-                    return url
-
-                elif resolution_missav > 0 and resolution_missav == target_resolution:
-                    logger.debug(f'Max resolution is set to url "{url}" for missav.')
-                    logger.debug('Checking max resolution segment......Done')
-                    return url
-
-            logger.debug('No resolution url found. (Url has existed but missing now.)')
-            logger.debug('Checking max resolution segment......Done')
-            return ''
-
-        else:
-            logger.debug('No resolution url found. (Resolutions are the same.)')
-            logger.debug('Checking max resolution segment......Done')
-            return ''
-
-    else:
-        logger.debug('No resolution url found.')
-        logger.debug('Checking max resolution segment......Done')
-        return ''
 
 
 def create_selenium_instance() -> WebDriver:
@@ -271,13 +216,15 @@ def selenium_get_url(firefox: webdriver.firefox.webdriver.WebDriver, url: str, r
         logger.debug(f'Loading referer url "{referer_url}" .')
         firefox.get(referer_url)
 
-        sleep(1)
+        sleep(1 if url.find('tktube.com') == -1 else 10)
 
         logger.debug(f'Loading url "{url}" .')
         firefox.get(url)
 
+        sleep(0 if url.find('tktube.com') == -1 else 10)
+
     except InvalidArgumentException as e:
-        logger.debug(f'Invalid selenium argument with url "{url}" and referer_url "{referer_url}".' + str(e).replace('\n', '\\n').replace('\r', ''))
+        logger.debug(f'Invalid selenium argument with url "{url}" and referer_url "{referer_url}". ' + make_oneline_error_message(str(e)))
         return False
 
     except WebDriverException as e:
@@ -289,7 +236,7 @@ def selenium_get_url(firefox: webdriver.firefox.webdriver.WebDriver, url: str, r
 
         # NOT a DNS error.
         else:
-            logger.debug(f'Error occurred during url loading. Here is the error message.\n{str(e).replace('\n', '\\n').replace('\r', '')}')
+            logger.debug(f'Error occurred during url loading. Here is the error message. {make_oneline_error_message(str(e))}')
             return False
 
     return True
@@ -334,7 +281,7 @@ def get_website_code(url: str, referer_url: str = None) -> str:
     source_code = ''
 
     if url.find('85po.com') != -1:
-        firefox = selenium_load_url(url, preload_times=5, referer_url=referer_url)
+        firefox = selenium_load_url(url, preload_times=3, referer_url=referer_url)
     else:
         firefox = selenium_load_url(url, referer_url=referer_url)
 
@@ -364,114 +311,154 @@ def get_website_title(url: str, referer_url: str = None) -> str:
     return website_title
 
 
-def clip_filename(filepath: str) -> str:
-    parent = str(Path(filepath).parent) + '/'
-    basename = Path(filepath).stem
-    extname = Path(filepath).suffix
+def clip_filename(filepath: Path) -> Path:
+    parent = filepath.parent
+    basename = filepath.stem
+    extname = filepath.suffix
 
-    pos = basename.find('.part')
+    clipped_filepath = Path(parent / Path(basename[:MAX_FILENAME_LENGTH - len(extname)] + extname))
 
-    if pos != -1:
-        extname = basename[pos:] + extname
-        basename = basename[:pos]
-
-    clipped_filepath = parent + basename[:MAX_FILENAME_LENGTH - len(extname)] + extname
+    if filepath != clipped_filepath:
+        logger.info(f'Filename exceed MAX_FILENAME_LENGTH. filename is clipped from "{str(filepath)}" to "{str(clipped_filepath)}".')
 
     return clipped_filepath
 
 
-def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool = True, referer_url: str = None) -> str:
-    is_success = False
-
-    if is_top:
-        print(f'\nDownloading file "{filepath}".')
-    logger.info(f'Downloading file "{filepath}" from "{url}".')
-
-    # Check length of filename with extension name is under the limit.
+def get_unique_filepath(filepath: Path) -> Path:
     original_filepath = filepath
-    filepath = clip_filename(filepath)
+    parent = filepath.parent
+    basename = filepath.stem
+    extname = filepath.suffix
+    no = 1
+
+    while filepath.exists():
+        filepath = Path(parent / Path(f'{basename} ({no}){extname}'))
+        no += 1
 
     if original_filepath != filepath:
-        logger.info('Filename exceed MAX_FILENAME_LENGTH. filename is clipped.')
-        logger.debug(f'Original filepath is "{original_filepath}".')
-        logger.debug(f'Clipped filepath is "{filepath}".')
+        logger.info(f'Filepath "{str(original_filepath)}" already exists, so use new filepath "{str(filepath)}".')
 
-    # Retry 10 times due to some files are really large!
-    for retry_count in range(10):
-        if is_top:
-            print(f'\nTry to download for {retry_count + 1} time(s).')
-        logger.info(f'Try to download for {retry_count + 1} time(s).')
+    return filepath
 
-        # Set request header for the next request.
-        if referer_url is None:
-            request_header = REQUEST_HEADER
+
+def ffmpeg_media_info(filepath: str) -> Any:
+    try:
+        ffprobe = FFmpeg(executable='ffprobe').input(filepath, print_format='json', show_streams=None)
+        media_info = ffprobe.execute()
+        media_info_json = json.loads(media_info)
+    except FFmpegError as e:
+        logger.debug(f'Error occurred during video file meta retrieving. Here is the error message. {make_oneline_error_message(str(e))}')
+        return None
+
+    return media_info_json
+
+
+def download_m3u8(url: str, filepath: Path | None, referer_url: str | None = None, show_progress: bool = False) -> Path | None:
+    headers = '\r\n'.join(f'{key}: {value}' for key, value in make_request_header(url, referer_url).items())
+
+    ffmpeg = (
+        FFmpeg()
+        .option('y')
+        .input(url, headers=headers)
+        .output(
+            str(filepath),
+            vcodec='copy',
+            acodec='copy'
+        )
+    )
+
+    @ffmpeg.on('progress')
+    def update_progress(progress: FFmpegProgress):
+        if show_progress:
+            print('\rDownload Playlist: ' + str(progress), end='')
+            logger.debug('Download Playlist: ' + str(progress))
+
+    ffmpeg.execute()
+
+    if show_progress:
+        print('\rDownload Playlist: Complete')
+
+    return filepath
+
+
+def make_request_referer(url: str, referer_url: str = None) -> str:
+    if referer_url is None or len(referer_url) == 0:
+        referer_url = urlparse(url).scheme + '://' + urlparse(url).netloc
+
+    return referer_url
+
+
+def make_request_header(url: str, referer_url: str = None) -> Dict[str,str]:
+    return {**REQUEST_HEADER, **{'Referer': make_request_referer(url, referer_url)}}
+
+
+def make_oneline_error_message(message: str) -> str:
+    return message.replace('\r', '').replace('\n', '\\n')
+
+
+def preview_download(url: str, referer_url: str = None) -> str:
+    with requests.get(url, stream=True, headers=make_request_header(url, referer_url), verify=False) as request:
+        if request.status_code == 200:
+            first_chunk_byte = next(request.iter_content(chunk_size=REQUEST_CHUNK_SIZE))
+            first_chunk_str = first_chunk_byte.decode(errors='ignore')
         else:
-            request_header = {**REQUEST_HEADER, **{'Referer': referer_url}}
+            first_chunk_str = ''
 
-        # Open file request to server and get file size.
-        try:
-            request = requests.get(url, stream=True, headers=request_header, verify=False)
+    return first_chunk_str
 
-        except requests.exceptions.ConnectionError as e:
-            # A DNS error.
-            if str(e).find('Temporary failure in name resolution') != -1:
-                logger.debug('DNS related error occurred. It may due to too many concurrent connection to your DNS server.')
 
-            # NOT an DNS error.
-            else:
-                logger.debug(f'Error occurred. Here is the error message.\n{str(e).replace('\n', '\\n').replace('\r', '')}')
+def download_file(url: str, filepath: Path, referer_url: str | None = None, show_progress: bool = False) -> Path | None:
+    try:
+        request = requests.get(url, stream=True, headers=make_request_header(url, referer_url), verify=False)
+    except requests.exceptions.ConnectionError as e:
+        # A DNS error.
+        if str(e).find('Temporary failure in name resolution') != -1:
+            logger.debug('DNS related error occurred. It may due to too many concurrent connection to your DNS server.')
+        # NOT an DNS error.
+        else:
+            logger.debug(f'Error occurred during download. Here is the error message. {make_oneline_error_message(str(e))}')
 
-            continue
+        request = None
 
-        content_bytes = request.headers.get('content-length')
+    if request is not None and request.status_code == 200:
+        is_success = False
 
-        # Format file size and output it.
+        content_bytes_str = request.headers.get('content-length')
+        content_bytes = None if content_bytes_str is None else int(content_bytes_str)
+
         if content_bytes is None:
-            if is_top:
-                print('File size reported from server is unavailable.')
-        else:
-            content_bytes = int(content_bytes)
+            print('File size reported from server is unavailable.')
 
-        logger.debug(f'File size reported from server is {content_bytes} bytes ().')
+        temp_filepath = generate_temp_filepath(filepath.parent)
+        logger.debug(f'Temp filepath is set to "{temp_filepath}".')
 
-        # Clear content of download file.
-        Path(filepath).unlink(missing_ok=True)
-
-        '''
-        Download file.
-        '''
-        with open(filepath, "ab") as fout:
-            # Download file with no message.
-            if not is_top or is_silent or content_bytes is None:
-                fout.write(request.content)
-
+        with open(temp_filepath, 'wb') as fout:
             # Download file with progress message.
-            else:
+            if show_progress:
                 downloaded_bytes = 0
 
-                with tqdm(total=content_bytes, unit='B', unit_scale=True, desc='Download File', disable=is_tty()) as progress:
-                    # Download data for chunk size at once.
+                with tqdm(total=content_bytes, unit='B', unit_scale=True, desc='Download File', disable=(content_bytes is not None)) as progress:
+                    # Download data for a chunk size at once.
                     for slice_data in request.iter_content(chunk_size=REQUEST_CHUNK_SIZE):
                         # Write chunk to disk.
                         fout.write(slice_data)
 
-                        # Print progress bar.
+                        # Update progress bar.
                         progress.update(len(slice_data))
 
-                        logger.info(f'File downloaded for {downloaded_bytes} bytes in {content_bytes} bytes.')
+                        downloaded_bytes += len(slice_data)
+                        logger.debug(f'File downloaded {downloaded_bytes} bytes in {content_bytes} bytes.')
 
                 print()
 
-        # Release request.
+            # Download file with no message.
+            else:
+                fout.write(request.content)
+
         request.close()
 
-        '''
-        Check integrity of downloaded file.
-        '''
-        file = Path(filepath)
-
-        if file.is_file():
-            filesize = file.stat().st_size
+        if temp_filepath.is_file():
+            filesize = temp_filepath.stat().st_size
 
             if content_bytes is None:
                 logger.debug('Unable to check integrity of downloaded file due to file size is unavailable.')
@@ -483,97 +470,67 @@ def download_file(url: str, filepath: str, is_silent: bool = False, is_top: bool
                 else:
                     logger.debug('File downloaded failed (integrity check NOT passed).')
 
-                    file.unlink()
-                    logger.debug('Downloaded file is removed from disk.')
+                    temp_filepath.unlink()
+                    logger.debug('Downloaded temp file is removed from disk.')
 
         else:
             logger.debug('Downloaded file NOT found. This may due to no write permission to file.')
 
         if is_success:
+            temp_filepath.rename(filepath)
+            logger.debug(f'Temp filepath "{temp_filepath}" is renamed to "{filepath}".')
+
+        return filepath if is_success else None
+
+    else:
+        error_message = '' if request is None else request.content.decode(errors='ignore')
+        logger.debug('Error occurred during download. Here is the error message.' + error_message)
+
+    return None
+
+
+def download_video(url: str, filepath: Path | None, is_silent: bool = False, level: int = 0, referer_url: str | None = None) -> Path | None:
+    if level < 0:
+        return None
+
+    filepath = get_unique_filepath(filepath)
+
+    if level == 0:
+        print(f'\nDownloading file "{str(filepath)}"......')
+
+    logger.info(f'Downloading file "{str(filepath)}" from "{url}"......')
+
+    downloaded_filepath = None
+
+    # Retry 10 times due to some files are really large and sometimes the connection is unstable!
+    for retry_count in range(10):
+        if level == 0:
+            print(f'\nTry to download for {retry_count + 1} time(s).')
+        logger.info(f'Try to download for {retry_count + 1} time(s).')
+
+        # File is a playlist. Transcode it through ffmpeg.
+        if preview_download(url, referer_url).startswith("#EXTM3U"):
+            downloaded_filepath = download_m3u8(url, filepath, referer_url, not is_silent and level == 0)
+        # File is NOT a playlist. Direct download it.
+        else:
+            downloaded_filepath = download_file(url, filepath, referer_url, not is_silent and level == 0)
+
+        if downloaded_filepath is not None:
             break
 
-    # Check if downloaded file is a playlist.
-    if is_success:
-        with open(filepath, 'rb') as fin:
-            start_bytes = fin.read(7)
-
-        # Download playlist.
-        if start_bytes == b'#EXTM3U':
-            if is_top and not is_silent:
-                print('\nDownloading playlist recursively.')
-            logger.info('Downloading playlist recursively.')
-
-            original_url = url
-
-            with open(filepath) as fin:
-                lines = fin.readlines()
-
-            urls = [line for line in lines if not line.startswith('#')]
-            urls = format_url_list(urls)
-
-            # Check if urls in playlist are different resolution.
-            max_resolution_url = get_max_resolution_url(urls)
-
-            logger.info(f'urls: {urls}')
-            logger.info(f'max_resolution_url: {max_resolution_url}')
-
-            if len(max_resolution_url) > 0:
-                urls = [max_resolution_url,]
-
-            # Fix url without full url in playlist.
-            for i, url in enumerate(urls):
-                if url.startswith('https://') or url.startswith('http://'):
-                    pass
-                else:
-                    urls[i] = urljoin(original_url, url)
-
-            # Download all segments.
-            filepath_base = filepath
-            merge_files = []
-
-            with tqdm(total=len(urls), unit='Segment', unit_scale=False, desc='Download Segments', disable=(is_tty() and is_top and not is_silent)) as progress:
-                for i, url in enumerate(urls):
-                    logger.debug(f'Downloading segment part {i+1}.')
-                    filepath_subfile = download_file(url, filepath_base + '.part' + str(i+1), is_silent, False, referer_url)
-                    merge_files.append(filepath_subfile)
-                    logger.debug(f'Downloading segment part {i + 1}......Done')
-                    logger.debug(f'Segment file is saved to "{filepath_subfile}".')
-
-                    # Print progress bar.
-                    progress.update(1)
-
-            if is_tty() and is_top and not is_silent:
-                print()
-
-            # Merge segments and remove it from disk.
-            with open(filepath, 'wb') as fout:
-                logger.debug(f'Merging segment parts to "{filepath}".')
-                logger.debug(f'Segment parts are listed: "[{", ".join(merge_files)}]".')
-
-                for merge_file in merge_files:
-                    with open(merge_file, 'rb') as fin:
-                        content = fin.read(Path(merge_file).stat().st_size)
-                    Path(merge_file).unlink()
-
-                    fout.write(content)
-
-                logger.debug(f'Merging segment parts to "{filepath}"......Done')
-
-            if is_top:
-                print('Downloading playlist recursively......Done\n')
-            logger.info('Downloading playlist recursively......Done')
-
-    if is_top:
-        print(f'Downloading file "{filepath}"......Done')
-    logger.info(f'Downloading file "{filepath}" from "{url}"......Done')
-
-    if is_success:
-        return filepath
+    if downloaded_filepath is None:
+        if level == 0:
+            print(f'Downloading file "{str(filepath)}"......Failed')
+        logger.info(f'Downloading file "{str(filepath)}" from "{url}"......Failed')
     else:
-        return ''
+        if level == 0:
+            print(f'Downloading file "{str(filepath)}"......Done')
+        logger.info(f'Downloading file "{str(filepath)}" from "{url}"......Done')
+
+    return downloaded_filepath
 
 
-def download_video(url: str, download_dir: str | None = None, filename: str | None = None, is_silent: bool = False) -> bool:
+def find_and_download_video(url: str, download_dir: str | None = None, filename: str | None = None, is_silent: bool = False) -> Path | None:
     '''
     Setup parameters.
     '''
@@ -596,12 +553,13 @@ def download_video(url: str, download_dir: str | None = None, filename: str | No
         if len(filename) == 0:
             print('Failed to get website title as filename.')
             logger.info('Failed to get website title as filename.')
-
-            return False
+            return None
 
     # Get filename with no extension.
     else:
         filename = Path(filename).stem
+
+    filename = str(clip_filename(Path(filename)))
 
     logger.debug(f'Parameter filename is set to "{filename}".')
 
@@ -609,6 +567,8 @@ def download_video(url: str, download_dir: str | None = None, filename: str | No
     '''
     Download video.
     '''
+
+    downloaded_filepath = None
 
     # It's from 85po.com .
     if url.find('85po.com') != -1:
@@ -621,6 +581,8 @@ def download_video(url: str, download_dir: str | None = None, filename: str | No
             firefox = selenium_load_url(url)
 
             if firefox is not None:
+                sleep(3)
+
                 try:
                     video = firefox.find_element(By.CSS_SELECTOR, '#kt_player video')
                 except NoSuchElementException:
@@ -639,11 +601,10 @@ def download_video(url: str, download_dir: str | None = None, filename: str | No
 
         # Check if we get the video url.
         if len(video_url) > 0:
-            if len(download_file(video_url, str(Path(download_dir, filename + '.mp4')), is_silent)) == 0:
-                return False
+            downloaded_filepath = download_video(video_url, Path(download_dir, filename + '.mp4'), is_silent)
         else:
             logger.debug('Failed to get video url.')
-            return False
+            return None
 
     # It's from porn5f.com .
     elif url.find('www.porn5f.com') != -1:
@@ -651,18 +612,17 @@ def download_video(url: str, download_dir: str | None = None, filename: str | No
         video_url = ''
 
         source_code = get_website_code(url)
-        bs = BeautifulSoup(source_code, "html.parser")
+        bs = BeautifulSoup(source_code, 'html.parser')
         video_urls = [element.find('source').attrs.get('src') for element in bs.find_all('video') if element.find('source') is not None]
         video_urls = [url for url in video_urls if url is not None and url.find('porn5f.com') != -1]
         video_url = video_urls[0] if len(video_urls) > 0 and len(video_urls[0]) > 0 else None
 
         # Check if we get the video url.
         if video_url is not None:
-            if len(download_file(video_url, str(Path(download_dir, filename + '.ts')), is_silent)) == 0:
-                return False
+            downloaded_filepath = download_video(video_url, Path(download_dir, filename + '.mp4'), is_silent)
         else:
             logger.debug('Failed to get video url.')
-            return False
+            return None
 
     # It's from xvideos.com .
     elif url.find('www.xvideos.com') != -1:
@@ -677,11 +637,10 @@ def download_video(url: str, download_dir: str | None = None, filename: str | No
 
         # Check if we get the video url.
         if len(video_url) > 0:
-            if len(download_file(video_url, str(Path(download_dir, filename + '.ts')), is_silent)) == 0:
-                return False
+            downloaded_filepath = download_video(video_url, Path(download_dir, filename + '.mp4'), is_silent)
         else:
             logger.debug('Failed to get video url.')
-            return False
+            return None
 
     # It's from tktube.com .
     elif url.find('tktube.com') != -1:
@@ -703,7 +662,7 @@ def download_video(url: str, download_dir: str | None = None, filename: str | No
                 logger.debug('Failed to get video url. Exception occurred.')
                 logger.debug(e)
                 firefox.quit()
-                return False
+                return None
 
             firefox.quit()
 
@@ -712,51 +671,10 @@ def download_video(url: str, download_dir: str | None = None, filename: str | No
 
         # Check if we get the video url.
         if len(video_url) > 0:
-            if len(download_file(video_url, str(Path(download_dir, filename + '.mp4')), is_silent)) == 0:
-                return False
+            downloaded_filepath = download_video(video_url, Path(download_dir, filename + '.mp4'), is_silent)
         else:
             logger.debug('Failed to get video url. The url is empty.')
-            return False
-
-    # It's from missav.com .
-    elif url.find('missav.com') != -1:
-        logger.debug('It\'s a url from missav.')
-        video_url = ''
-
-        for retry_counter in range(5):
-            logger.debug(f'[{retry_counter + 1}] Try to fetch video url from web page.')
-
-            # Fetch video url.
-            firefox = selenium_load_url(url)
-
-            if firefox is not None:
-                sleep(3)
-                entries = firefox.execute_script('return window.performance.getEntries();')
-
-                for entry in entries:
-                    if entry['name'].find('playlist.m3u8') != -1:
-                        video_url = entry['name']
-
-                if len(video_url) > 0:
-                    logger.debug('Successful to fetch video url from web page.')
-                    firefox.quit()
-                    break
-                else:
-                    logger.debug('Failed to fetch video url from web page.')
-                    sleep(5)
-
-                firefox.quit()
-
-            else:
-                logger.debug('Failed to get browser driver.')
-
-        # Check if we get the video url.
-        if len(video_url) > 0:
-            if len(download_file(video_url, str(Path(download_dir, filename + '.ts')), is_silent, referer_url=url)) == 0:
-                return False
-        else:
-            logger.debug('Failed to get video url. The url is empty.')
-            return False
+            return None
 
     # It's from iwant-sex.com .
     elif url.find('iwant-sex.com') != -1:
@@ -792,22 +710,24 @@ def download_video(url: str, download_dir: str | None = None, filename: str | No
 
         # Check if we get the video url.
         if len(video_url) > 0:
-            if len(download_file(video_url, str(Path(download_dir, filename + '.ts')), is_silent, referer_url=url)) == 0:
-                return False
+            downloaded_filepath = download_video(video_url, Path(download_dir, filename + '.mp4'), is_silent)
         else:
             logger.debug('Failed to get video url. The url is empty.')
-            return False
+            return None
 
     # Not supported website.
     else:
         print(f'The video from url "{url}" which is NOT supported.')
         logger.info(f'The video from url "{url}" which is NOT supported.')
+        return None
 
-        return False
 
+    if downloaded_filepath is None:
+        logger.debug(f'Trying to download video from the url......Failed')
+    else:
+        logger.debug(f'Trying to download video from the url......Done')
 
-    logger.debug(f'Trying to download video from the url......Done')
-    return True
+    return downloaded_filepath
 
 
 def interactive_mode(download_dir: str, is_silent: bool) -> bool:
@@ -825,15 +745,15 @@ def interactive_mode(download_dir: str, is_silent: bool) -> bool:
             filename = Path(filename).name
 
         # Download video.
-        is_success = download_video(url, download_dir, filename, is_silent=is_silent)
+        downloaded_filepath = find_and_download_video(url, download_dir, filename, is_silent=is_silent)
 
         # Check result.
-        if is_success:
-            print('Download video successfully.')
-            logger.info('Download video successfully.')
-        else:
+        if downloaded_filepath is None:
             print('Download video failed.')
             logger.info('Download video failed.')
+        else:
+            print('Download video successfully.')
+            logger.info('Download video successfully.')
 
     return len(url) > 0
 
@@ -846,10 +766,18 @@ def batch_mode(download_dir: str, urls: List[str], is_silent: bool, validation_d
         logger.info(f'[ Case {i+1} ]')
 
         # Download video.
-        is_success = download_video(url, download_dir, is_silent=is_silent)
+        downloaded_filepath = find_and_download_video(url, download_dir, is_silent=is_silent)
 
         # Check result.
-        if is_success:
+        if downloaded_filepath is None:
+            print(f'Download video failed.')
+            logger.info(f'[ Case {i + 1} ] Download video failed.')
+
+            # Write failed url to disk.
+            with open(URL_FAILED_FILENAME, 'a') as fout:
+                fout.write(url + '\n')
+
+        else:
             if validation_data is not None:
                 validation_datum = [datum for datum in validation_data if datum['url'] == url]
                 validation_datum = validation_datum[0] if len(validation_datum) > 0 else None
@@ -861,32 +789,35 @@ def batch_mode(download_dir: str, urls: List[str], is_silent: bool, validation_d
 
                     if validation_datum_filepath is not None and Path(validation_datum_filepath).is_file():
                         # Validate file size.
-                        if Path(validation_datum_filepath).stat().st_size == validation_datum_size:
+                        datum_size = Path(validation_datum_filepath).stat().st_size
+
+                        if datum_size == validation_datum_size:
                             print(f'Validation success for field size with correct value "{validation_datum_size}".')
                             logger.info(f'Validation success for field size with correct value "{validation_datum_size}".')
                         else:
-                            print(f'{BashColor.RED}Validation failed for field size with correct value "{validation_datum_size}".{BashColor.CLEAR}')
-                            logger.info(f'Validation failed for field size with correct value "{validation_datum_size}".')
+                            print(f'{BashColor.RED}Validation failed for field size with current value "{datum_size}" and correct value "{validation_datum_size}".{BashColor.CLEAR}')
+                            logger.info(f'Validation failed for field size with current value "{datum_size}" and correct value "{validation_datum_size}".')
 
-                        ffprobe = FFmpeg(executable='ffprobe').input(validation_datum_filepath, print_format='json', show_streams=None)
+                        media_meta = ffmpeg_media_info(validation_datum_filepath)
 
-                        try:
-                            media_meta = json.loads(ffprobe.execute())
-                        except FFmpegError as e:
-                            media_meta = {'streams': []}
-                            logger.debug(f'Error occurred during video file meta retrieving. Here is the error message.\n{str(e).replace('\n', '\\n').replace('\r', '')}')
+                        if media_meta is not None:
+                            media_meta_durations = [meta['duration'] for meta in media_meta['streams'] if 'duration' in meta]
 
-                        media_meta_durations = [meta['duration'] for meta in media_meta['streams'] if 'duration' in meta]
+                            # Do stream data validations.
+                            if 'streams' in media_meta:
+                                # Validate duration.
+                                datum_duration = float(media_meta_durations[0]) if len(media_meta_durations) > 0 else -1
 
-                        # Do stream data validations.
-                        if 'streams' in media_meta:
-                            # Validate duration.
-                            if len(media_meta_durations) > 0 and media_meta_durations[0] == validation_datum_duration:
-                                print(f'Validation success for field duration with correct value "{validation_datum_duration}".')
-                                logger.info(f'Validation success for field duration with correct value "{validation_datum_duration}".')
-                            else:
-                                print(f'{BashColor.RED}Validation failed for field duration with correct value "{validation_datum_duration}".{BashColor.CLEAR}')
-                                logger.info(f'Validation failed for field duration with correct value "{validation_datum_duration}".')
+                                if datum_duration == validation_datum_duration:
+                                    print(f'Validation success for field duration with correct value "{validation_datum_duration}".')
+                                    logger.info(f'Validation success for field duration with correct value "{validation_datum_duration}".')
+                                else:
+                                    print(f'{BashColor.RED}Validation failed for field duration with current value "{datum_duration}" and correct value "{validation_datum_duration}".{BashColor.CLEAR}')
+                                    logger.info(f'Validation failed for field duration with current value "{datum_duration}" and correct value "{validation_datum_duration}".')
+
+                        else:
+                            print(f'{BashColor.RED}Failed to retrieve meta info from downloaded file.{BashColor.CLEAR}')
+                            logger.info(f'Validation failed: Failed to retrieve meta info from downloaded file.')
 
                     else:
                         print(f'{BashColor.RED}Validation failed for field filename with correct value "{validation_datum_filepath}".{BashColor.CLEAR}')
@@ -899,14 +830,6 @@ def batch_mode(download_dir: str, urls: List[str], is_silent: bool, validation_d
             print(f'Download video successfully.')
             logger.info(f'[ Case {i+1} ] Download video successfully.')
             count_success += 1
-
-        else:
-            print(f'Download video failed.')
-            logger.info(f'[ Case {i+1} ] Download video failed.')
-
-            # Write failed url to disk.
-            with open(URL_FAILED_FILENAME, 'a') as fout:
-                fout.write(url + '\n')
 
     print('\nAll cases are done.')
     print(f'{count_success}/{len(urls)} cases complete successfully.')
@@ -931,7 +854,7 @@ def main():
     try:
         args = args_parser.parse_args()
     except argparse.ArgumentError as e:
-        error_messages.append('Failed to parse argument.\n' + str(e).replace('\n', '\\n').replace('\r', ''))
+        error_messages.append('Failed to parse argument. ' + make_oneline_error_message(str(e)))
     else:
         error_messages += check_args(args)
 
@@ -964,7 +887,6 @@ def main():
         print('|    https://porn5f.com/         |')
         print('|    https://xvideos.com/        |')
         print('|    https://tktube.com/         |')
-        print('|    https://missav.com/         |')
         print('|    https://iwant-sex.com/      |')
         print('+--------------------------------+')
 

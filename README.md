@@ -6,7 +6,6 @@ This program supports videos on the following websites:
 - porn5f.com
 - 85po.com
 - tktube.com
-- missav.com
 - iwant-sex.com
 
 # Specification
@@ -41,6 +40,12 @@ To get help, please open terminal and run the following command.
 Then, follow the instructions to enjoy this program.
 
 # Changelog
+- 02 / 04 2025
+  - Fix bugs.
+  - Add ffmpeg media transcode.
+  - Remove missav.com support.
+  - Add requirements.txt .
+
 - 02 / 02 2025
   - Fix bugs.
 
@@ -153,13 +158,11 @@ Then, follow the instructions to enjoy this program.
   - Add progress bar in downloadFile() and playlistToTs() in main.py .
 
 # Future work
-- Add `requirements.txt`
-- Use a tmp name during download and return final filename at complete
+- OOP
 - Optimize self test func
 - Fix bugs for tk (download_file() request->selenium), iwant
 - Remove suffix from website title
-- Add multi-thread support during download.
-- ffmpeg format conversion for ts
+- Add multi-thread support during download
 
 # Copyright
 This program is written by [haward79](https://www.haward79.tw/).
