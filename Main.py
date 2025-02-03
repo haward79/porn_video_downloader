@@ -187,7 +187,7 @@ def format_url_list(urls: List[str]) -> List[str]:
 
 def create_selenium_instance() -> WebDriver:
     firefox_options = webdriver.FirefoxOptions()
-    # firefox_options.add_argument('-headless')
+    firefox_options.add_argument('-headless')
 
     firefox = webdriver.Firefox(options=firefox_options)
 
