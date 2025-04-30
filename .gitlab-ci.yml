@@ -1,0 +1,33 @@
+
+stages:
+  - install
+  - test
+
+install_dependencies:
+  stage: install
+  image: selenium/standalone-firefox
+  tags:
+    - python
+  script:
+    - sudo apt update
+    - DEBIAN_FRONTEND=noninteractive sudo apt install -y python3-virtualenv
+    - virtualenv env
+    - source env/bin/activate
+    - pip install -r requirements.txt
+  artifacts:
+   paths:
+     - env/
+
+self_test:
+  stage: test
+  image: selenium/standalone-firefox
+  tags:
+    - python
+  before_script:
+    - sudo apt update
+    - DEBIAN_FRONTEND=noninteractive sudo apt install -y git gcc libssl-dev make nasm pkg-config
+    - git clone https://github.com/FFmpeg/FFmpeg.git && pushd FFmpeg && ./configure --enable-openssl --enable-protocol=https --enable-nonfree && make -j && sudo make install && popd || exit 1
+    - source env/bin/activate
+    - mkdir download
+  script:
+    - python Main.py --download-dir download --self-test || exit 1

@@ -28,7 +28,9 @@ This program supports videos on the following websites:
       - Please install appropriate web browser and driver for selenium(python library).
       - You can get reference from [selenium website](https://pypi.org/project/selenium/).
   - Web Browser (with media codecs)
-    - You can install the codecs by apt with package name libavcodec-extra.
+    - You can install the codecs by apt with package name `libavcodec-extra` .
+  - FFmpeg
+    - You can install it by apt with package name `ffmpeg` .
 
 # Install
 This program doesn't need to install.
@@ -50,6 +52,9 @@ Then, follow the instructions to enjoy this program.
 <details>
 
   <summary>Check long-long changelog</summary>
+
+  - 04 / 30 2025
+    - Update gitlab-ci
 
   - 02 / 04 2025
     - Update README
