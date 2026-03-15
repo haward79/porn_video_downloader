@@ -53,6 +53,10 @@ Then, follow the instructions to enjoy this program.
 
   <summary>Check long-long changelog</summary>
 
+  - 03 / 16 2026
+    - Update gitlab-ci to sync with GitHub
+    - Remove old pipelines for now
+
   - 04 / 30 2025
     - Update gitlab-ci
 
