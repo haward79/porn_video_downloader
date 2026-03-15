@@ -4,6 +4,7 @@ from typing import Any, List, Dict
 import logging
 import argparse
 from pathlib import Path
+from sys import exit
 from os import chdir
 from math import ceil
 from time import sleep
@@ -53,31 +54,36 @@ def self_test_data() -> List[Dict[str,str|int|None]]:
             'url': 'https://www.85po.com/v/11978/gao-zhong-mei-tuo-yi-zi-pai-36/',
             'filepath': 'download/高中妹脫衣自拍36.mp4',
             'duration': 35.44,
-            'size': 1728293
-        },
-        {
-            'url': 'https://www.porn5f.com/video/127685/%E5%90%83%E8%82%89%E6%A3%92',
-            'filepath': 'download/吃肉棒 - 五樓自拍.mp4',
-            'duration': 137.7,
-            'size': 52113081
+            'size': 1728293,
+            'enabled': True,
         },
         {
             'url': 'https://www.xvideos.com/video.hmcoeofdd90/_',
             'filepath': 'download/[無碼]女王大人幫我擼到射 - XVIDEOS.COM.mp4',
             'duration': 141.76,
-            'size': 7822391
+            'size': 7822391,
+            'enabled': True,
+        },
+        {
+            'url': 'https://www.porn5f.com/video/127685/%E5%90%83%E8%82%89%E6%A3%92',
+            'filepath': 'download/吃肉棒 - 五樓自拍.mp4',
+            'duration': 137.7,
+            'size': 52113081,
+            'enabled': False,
         },
         {
             'url': 'https://tktube.com/videos/296295/011925-01/',
             'filepath': 'download/天然むすめ 011925_01 息継ぎするのを忘れるくらい一生懸命！喉奥までぶっこむ連続ご奉仕！細川洋子.mp4',
             'duration': None,
-            'size': 8860
+            'size': 8860,
+            'enabled': False,
         },
         {
             'url': 'https://iwant-sex.com/video/24749.html',
             'filepath': None,
             'duration': None,
-            'size': None
+            'size': None,
+            'enabled': False,
         },
     ]
 
@@ -843,8 +849,10 @@ def batch_mode(download_dir: str, urls: List[str], is_silent: bool, validation_d
     return count_success
 
 
-def main():
+def main() -> bool:
     global logger
+
+    are_all_success = True
 
     # Check arguments.
     error_messages = []
@@ -916,7 +924,7 @@ def main():
     else:
         if args.self_test:
             std = self_test_data()
-            urls = [datum['url'] for datum in std]
+            urls = [datum['url'] for datum in std if datum['enabled']]
         else:
             std = None
 
@@ -931,9 +939,13 @@ def main():
         print(f'{len(urls)} urls are filtered and accepted.')
         logger.info(f'{len(urls)} urls are filtered and accepted.')
 
-        batch_mode(args.download_dir, urls, args.is_silent, std)
+        count_success = batch_mode(args.download_dir, urls, args.is_silent, std)
+
+        are_all_success = count_success == len(urls)
 
     clear_selenium_files()
+
+    return are_all_success
 
 
 '''
@@ -944,4 +956,5 @@ Main
 logger: logging.Logger | None = None
 
 if __name__ == '__main__':
-    main()
+    are_all_success = main()
+    exit(0 if are_all_success else 1)
