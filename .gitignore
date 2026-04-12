@@ -1,7 +1,18 @@
-.gitignore
-*.log
-__pycache__
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# IDE
 .vscode
 .idea
-download
 
+# For Project
+*.log
+download
