@@ -33,17 +33,18 @@ This program supports videos on the following websites:
     - You can install it by apt with package name `ffmpeg` .
 
 # Install
-This program doesn't need to install.
+This program doesn't need to do global install.
 
-However, some python dependencies or libraries is required.
+However, some python dependencies or libraries is required.  
+Following script is optional and this will also run during first run.
 ```bash
-pip3 install -r requirements.txt
+uv sync
 ```
 
 # Usage
 To get help, please open terminal and run the following command.
 ```bash
-python3 Main.py -h
+uv run python Main.py -h
 ```
 
 Then, follow the instructions to enjoy this program.
@@ -52,6 +53,10 @@ Then, follow the instructions to enjoy this program.
 <details>
 
   <summary>Check long-long changelog</summary>
+
+  - 04 / 13 2026
+    - Replace pip with uv
+    - Add syntax check to todo
 
   - 03 / 16 2026
     - Update gitlab-ci to sync with GitHub
@@ -185,6 +190,7 @@ Then, follow the instructions to enjoy this program.
 # TODO or Known Issues
 - OOP
 - Optimize self test func
+- Add mypy or pyright for syntax check
 - Fix bugs for tktube and iwant
 - Remove suffix from website title
 - Add multi-thread support during download
