@@ -1,7 +1,10 @@
-# What's this
-This is an online video downloader.
+# Overview
 
-This program supports videos on the following websites:
+This is an **online video downloader** that
+allows you to download videos from supported websites.
+
+Currently, the program supports videos from the following websites:
+
 - xvideos.com
 - porn5f.com
 - 85po.com
@@ -9,49 +12,70 @@ This program supports videos on the following websites:
 - iwant-sex.com
 
 # Specification
-- File or keyboard input are both supported for video urls.
-- Users can select download directory by themselves.
-- This program can retrieve web page titles as video filenames automatically.
-- Videos are downloaded serially with retry on failure mechanism.
-- Progress bars are available during download.
-- Silent mode with no extra output is supported.
-- This program is written with detailed log mechanism for easy debugging.
+
+- Supports both **file input** and **keyboard input** for video URLs.
+- Users can **select the download directory**.
+- Automatically retrieves **web page titles** as video filenames.
+- Videos are downloaded **serially** with a **retry-on-failure** mechanism.
+- Displays **progress bars** during downloads.
+- Supports **silent mode** with no extra output.
+- Detailed **logging mechanism** included for easy debugging.
 
 # Pre-requirements
-- Software
-  - Linux based OS
-    - *Note : This program may run on Windows by modifying some codes.*
-  - Python 3
-  - Python 3 Library
-    - Take a look into `requirements.txt`
-    - Selenium (web browser driver)
-      - Please install appropriate web browser and driver for selenium(python library).
-      - You can get reference from [selenium website](https://pypi.org/project/selenium/).
-  - Web Browser (with media codecs)
-    - You can install the codecs by apt with package name `libavcodec-extra` .
-  - FFmpeg
-    - You can install it by apt with package name `ffmpeg` .
+
+## Software
+
+- **Linux-based OS**  
+  - *Note: This program may run on Windows by modifying some code.*
+- **Python 3**
+- **Python 3 Libraries**
+  - See `uv tree` for a list of dependencies.
+  - **Selenium** (web browser driver)  
+    - Install the appropriate web browser and driver for Selenium (Python library).  
+    - Reference: [Selenium PyPI](https://pypi.org/project/selenium/)
+- **Web Browser** (with media codecs)  
+  - Install codecs using `apt` with package name: `libavcodec-extra`
+- **FFmpeg**  
+  - Install using `apt` with package name: `ffmpeg`
+
+## Hardware
+
+There are **minimal hardware requirements** for this program.
+
+- Most modern systems can run it without issues.
+- Even a **Raspberry Pi 3** is sufficient.
 
 # Install
-This program doesn't need to install.
 
-However, some python dependencies or libraries is required.
+This program does **not require a global installation**.
+
+However, some Python dependencies are required.
+You can install them using the following optional command
+(it will also run automatically on first execution):
+
 ```bash
-pip3 install -r requirements.txt
+uv sync
 ```
 
 # Usage
-To get help, please open terminal and run the following command.
+
+To view the help message, open a terminal and run:
+
 ```bash
-python3 Main.py -h
+uv run python Main.py -h
 ```
 
-Then, follow the instructions to enjoy this program.
+Then, follow the on-screen instructions to start using the program.
 
 # Changelog
+
 <details>
 
   <summary>Check long-long changelog</summary>
+
+  - 04 / 13 2026
+    - Replace pip with uv
+    - Add syntax check to todo
 
   - 03 / 16 2026
     - Update gitlab-ci to sync with GitHub
@@ -183,19 +207,23 @@ Then, follow the instructions to enjoy this program.
 </details>
 
 # TODO or Known Issues
-- OOP
-- Optimize self test func
-- Fix bugs for tktube and iwant
-- Remove suffix from website title
-- Add multi-thread support during download
+
+- Refactor code using **OOP principles**.
+- Optimize the **self-test function**.
+- Integrate **mypy** or **pyright** for syntax checking.
+- Fix bugs for **tktube** and **iwant**.
+- Remove unnecessary suffixes from website titles.
+- Add **multi-threaded support** for faster downloads.
 
 # Copyright
+
 This program is written by [haward79](https://www.haward79.tw/).
 
-This is a COPYLEFT program!
-Everyone can edit and share this program to others for free(without payment and with freedom) with name-tagged.
+This is a **COPYLEFT program**!
+Everyone can edit and share this program for free (without payment) as long as the original author is credited.
 
-Please note: Any program developed based on this program needs to follow the copyleft policy!
+> Any program developed based on this software must also comply with the copyleft policy.
 
-**The videos downloaded by this program is not responsible by the author of program.  
-Please use this program with care.**
+> [!NOTE]
+> The author is **not responsible** for the videos downloaded using this program.  
+> Please use the program responsibly and legally.
