@@ -2,7 +2,7 @@
 from typing import List
 import inspect
 from pathlib import Path
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 from Main import BashColor
 
@@ -21,7 +21,14 @@ def extract_url_from_html(html_filepath: str, url_filepath: str) -> bool:
 
         bs = BeautifulSoup(source_code, "html.parser")
         link_elements = bs.find_all('a')
-        links = [element.attrs.get('href') for element in link_elements]
+        links = [
+            link_href
+            for element in link_elements
+            if (
+                isinstance(element, Tag) and
+                isinstance(link_href := element.attrs.get('href'), str)
+            )
+        ]
 
         with open(url_filepath, 'w') as fout:
             fout.write('\n'.join(links))

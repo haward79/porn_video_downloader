@@ -1,6 +1,32 @@
-push-github:
+
+workflow:
   rules:
-    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE != "schedule"
+    - if: >
+        $CI_COMMIT_BRANCH == "main" &&
+        $CI_PIPELINE_SOURCE != "schedule"
+
+image: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/lazy_images/selenium
+
+variables:
+  UV_CACHE_DIR: $CI_PROJECT_DIR/.cache/uv
+
+cache:
+  key:
+    files:
+      - uv.lock
+  paths:
+    - .cache/uv
+    - .venv
+
+static_analysis:
+  before_script:
+    - uv sync --frozen
+  script:
+    - uv run pyright
+
+push-github:
+  needs:
+    - static_analysis
   image: $CI_REGISTRY/haward79/push2github/push2github:latest
   variables:
     GITHUB_URL: git@github.com:haward79/porn_video_downloader.git
