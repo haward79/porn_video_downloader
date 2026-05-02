@@ -5,7 +5,7 @@ workflow:
         $CI_COMMIT_BRANCH == "main" &&
         $CI_PIPELINE_SOURCE != "schedule"
 
-image: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/lazy_images/selenium
+image: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/lazy_images/selenium_ffmpeg
 
 variables:
   UV_CACHE_DIR: $CI_PROJECT_DIR/.cache/uv
@@ -24,9 +24,20 @@ static_analysis:
   script:
     - uv run pyright
 
+self_test:
+  needs:
+    - static_analysis
+  before_script:
+    - uv sync --frozen
+    # For saving videos
+    - mkdir download
+  script:
+    - uv run python Main.py --download-dir download --self-test
+
 push-github:
   needs:
     - static_analysis
+    - self_test
   image: $CI_REGISTRY/haward79/push2github/push2github:latest
   variables:
     GITHUB_URL: git@github.com:haward79/porn_video_downloader.git
