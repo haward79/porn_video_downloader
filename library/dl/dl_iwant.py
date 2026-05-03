@@ -19,6 +19,6 @@ class DlIwant(DlBase):
             for entry in entries:
                 if entry['name'].find('.m3u8') != -1:
                     video_url = entry['name']
-                    return self.download_video(video_url, output_title + '.mp4')
+                    return self.download_video(video_url, output_title + '.mp4', url)
 
         return None

@@ -23,7 +23,4 @@ class DlXvideos(DlBase):
 
         video_url = extract_string(source_code, pos + 25, "'")
 
-        if not video_url:
-            return None
-
-        return self.download_video(video_url, output_title + '.mp4')
+        return self.download_video(video_url, output_title + '.mp4', url)

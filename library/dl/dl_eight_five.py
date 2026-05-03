@@ -26,4 +26,4 @@ class DlEightFive(DlBase):
         if video_url is None:
             return None
 
-        return self.download_video(video_url, output_title + '.mp4')
+        return self.download_video(video_url, output_title + '.mp4', url)

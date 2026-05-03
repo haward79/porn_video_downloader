@@ -25,9 +25,6 @@ class DlFiveF(DlBase):
             if isinstance(element_source_src, str)
             if element_source_src.find(self.get_domain()) != -1
         ]
-        video_url = video_urls[0] if len(video_urls) > 0 else None
+        video_url = video_urls[0] if len(video_urls) > 0 else ''
 
-        if video_url is None:
-            return None
-
-        return self.download_video(video_url, output_title + '.mp4')
+        return self.download_video(video_url, output_title + '.mp4', url)

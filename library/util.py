@@ -1,16 +1,20 @@
 
 from math import ceil
+from pathlib import Path
 from sys import stdout
 from typing import Dict
 from urllib.parse import urlparse
 import urllib3
 from enum import Enum
 
+from library.log_helper import logger
+
 
 # Disable urllib TLS certificate warning.
 urllib3.disable_warnings()
 
 
+REQUEST_CHUNK_SIZE = 4096
 SIZE_NAMES = ('B', 'KB', 'MB', 'GB', 'TB')
 REQUEST_HEADER = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:97.0) Gecko/20100101 Firefox/97.0'
@@ -70,3 +74,20 @@ def extract_string(string: str, start_index: int, end_delimiter: str) -> str:
         return ''
 
     return string[start_index:end_index]
+
+
+def get_unique_filepath(filepath: Path) -> Path:
+    original_filepath = filepath
+    parent = filepath.parent
+    basename = filepath.stem
+    extname = filepath.suffix
+    no = 1
+
+    while filepath.exists():
+        filepath = Path(parent / Path(f'{basename} ({no}){extname}'))
+        no += 1
+
+    if original_filepath != filepath:
+        logger().info(f'Filepath "{original_filepath}" already exists, so replaced with new filepath "{filepath}".')
+
+    return filepath
