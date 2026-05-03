@@ -17,7 +17,7 @@ def ffmpeg_media_info(filepath: str) -> Any:
         media_info_json = json.loads(media_info)
 
     except FFmpegError as e:
-        logger().warning(f'Error occurred during video file meta retrieving. Here is the error message. {make_oneline_error_message(str(e))}')
+        logger().error(f'Error occurred during video file meta retrieving. Here is the error message. {make_oneline_error_message(str(e))}')
         return None
 
     return media_info_json

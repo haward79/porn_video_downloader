@@ -44,13 +44,13 @@ def parse_args() -> Namespace | List[str]:
         args = get_args_parser().parse_args()
     except ArgumentError as e:
         error_messages.append('Failed to parse argument: ' + make_oneline_error_message(str(e)))
-        logger().warning(error_messages)
+        logger().error(error_messages)
         return error_messages
 
     error_messages += check_args(args)
 
     if len(error_messages) > 0:
-        logger().warning(error_messages)
+        logger().error(error_messages)
         return error_messages
 
     logger().info(f'Parameter urls_path is set to "{args.urls_path}".')
