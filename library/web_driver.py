@@ -90,7 +90,7 @@ class WebDriver:
         selector: str,
     ) -> WebElement | None:
         try:
-            element = self.driver.find_element(by, selector)
+            element = self.driver.find_element(str(by), selector)
         except NoSuchElementException:
             logger().error(f'Failed to locate element "{selector}" by "{by if isinstance(by, str) else by.__class__.__name__}".')
             return None
