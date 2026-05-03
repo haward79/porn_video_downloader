@@ -3,7 +3,6 @@ from argparse import ArgumentParser, Namespace, ArgumentError
 from pathlib import Path
 from typing import List
 
-from library.log_helper import logger
 from library.util import make_oneline_error_message
 
 
@@ -44,19 +43,13 @@ def parse_args() -> Namespace | List[str]:
         args = get_args_parser().parse_args()
     except ArgumentError as e:
         error_messages.append('Failed to parse argument: ' + make_oneline_error_message(str(e)))
-        logger().error(error_messages)
+        print(error_messages)
         return error_messages
 
     error_messages += check_args(args)
 
     if len(error_messages) > 0:
-        logger().error(error_messages)
+        print(error_messages)
         return error_messages
-
-    logger().info(f'Parameter urls_path is set to "{args.urls_path}".')
-    logger().info(f'Parameter download_dir is set to "{args.download_dir}".')
-    logger().info(f'Parameter work_dir is set to "{args.work_dir}".')
-    logger().info(f'Parameter is_silent is set to "{args.is_silent}".')
-    logger().info(f'Parameter self_test is set to "{args.self_test}".')
 
     return args

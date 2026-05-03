@@ -7,7 +7,7 @@ from os import chdir
 
 from library.args_helper import parse_args
 from library.dl.dl_base import DlBase
-from library.log_helper import logger, stdout
+from library.log_helper import logger, stdout, init_logger
 from library.test.test_case import TestCase
 from library.util import format_url_list, BashColor
 
@@ -127,6 +127,14 @@ def main() -> bool:
         logger().error(msg)
         stdout(msg)
         return False
+
+    init_logger(args.work_dir)
+
+    logger().info(f'Parameter urls_path is set to "{args.urls_path}"')
+    logger().info(f'Parameter download_dir is set to "{args.download_dir}"')
+    logger().info(f'Parameter work_dir is set to "{args.work_dir}"')
+    logger().info(f'Parameter is_silent is set to "{args.is_silent}"')
+    logger().info(f'Parameter self_test is set to "{args.self_test}"')
 
     # Change working directory
     if args.work_dir is not None:
