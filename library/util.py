@@ -22,6 +22,9 @@ REQUEST_HEADER = {
 
 
 class BashColor(Enum):
+    def __str__(self):
+        return self.value
+
     CLEAR = '\033[0m'
     RED = '\033[91m'
     GREEN = '\033[92m'
