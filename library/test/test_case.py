@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List
 import yaml
 
+from library.ffmpeg_helper import ffmpeg_media_info
 from library.log_helper import logger
 
 
@@ -39,6 +40,46 @@ class TestCase:
         self.__duration: float = duration
         self.__size: int = size
         self.__enabled: bool = enabled
+
+    def validate(self, target: Path) -> bool:
+        if not target.is_file():
+            logger().error(f'Validation stop for other fields due to output file "{target}" NOT found')
+            return False
+
+        has_failed = False
+
+        if self.filepath is None or (self.filepath.is_file() and self.filepath == target):
+            logger().info(f'Validation success for field "filepath" with correct value "{self.filepath}"')
+        else:
+            logger().error(f'Validation failed for field "filepath" with expected "{self.filepath}" but got "{target}"')
+            has_failed = True
+
+        file_size = target.stat().st_size
+
+        if self.size > 0 or file_size == self.size:
+            logger().info(f'Validation success for field "size" with correct value "{self.size}"')
+        else:
+            logger().error(f'Validation failed for field "size" with expected "{self.size}" but got "{file_size}"')
+            has_failed = True
+
+        media_meta = ffmpeg_media_info(target)
+
+        if media_meta is None or 'streams' not in media_meta:
+            has_failed = True
+        else:
+            media_duration = next(iter([
+                float(meta['duration'])
+                for meta in media_meta['streams']
+                if 'duration' in meta
+            ]), -1)
+
+            if self.duration > 0 or media_duration == self.duration:
+                logger().info(f'Validation success for field "duration" with correct value "{self.duration}"')
+            else:
+                logger().error(f'Validation failed for field "duration" with expected "{self.duration}" but got "{media_duration}"')
+                has_failed = True
+
+        return not has_failed
 
     @property
     def url(self) -> str | None:

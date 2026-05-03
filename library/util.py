@@ -2,7 +2,7 @@
 from math import ceil
 from pathlib import Path
 from sys import stdout
-from typing import Dict
+from typing import Dict, List
 from urllib.parse import urlparse
 import urllib3
 from enum import Enum
@@ -94,3 +94,17 @@ def get_unique_filepath(filepath: Path) -> Path:
         logger().info(f'Filepath "{original_filepath}" already exists, so replaced with new filepath "{filepath}".')
 
     return filepath
+
+
+def format_url_list(urls: List[str]) -> List[str]:
+    urls = urls.copy()
+
+    for i in range(len(urls)):
+        if urls[i].endswith('\r\n') or urls[i].endswith('\n\r'):
+            urls[i] = urls[i][:-2]
+        elif urls[i].endswith('\r') or urls[i].endswith('\n'):
+            urls[i] = urls[i][:-1]
+
+    urls = list(set([url for url in urls if len(url) > 0]))
+
+    return urls

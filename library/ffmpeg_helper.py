@@ -10,7 +10,7 @@ from library.log_helper import logger, stdout
 from library.util import make_oneline_error_message, make_request_header
 
 
-def ffmpeg_media_info(filepath: str) -> Any:
+def ffmpeg_media_info(filepath: Path) -> Any:
     try:
         ffprobe = FFmpeg(executable='ffprobe').input(filepath, print_format='json', show_streams=None)
         media_info = ffprobe.execute()
