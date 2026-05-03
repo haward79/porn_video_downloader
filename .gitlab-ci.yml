@@ -32,7 +32,7 @@ self_test:
     # For saving videos
     - mkdir download
   script:
-    - uv run python Main.py --download-dir download --self-test
+    - uv run python main.py --download-dir download --self-test
 
 push-github:
   needs:
