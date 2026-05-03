@@ -2,8 +2,10 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Type
+from bs4 import BeautifulSoup
 
 from library.log_helper import logger
+from library.web_driver import WebDriver
 
 
 class DlBase(ABC):
@@ -27,20 +29,40 @@ class DlBase(ABC):
     def get_domain() -> str:
         pass
 
+    @staticmethod
+    def get_title(url: str, max_len: int = 200) -> str:
+        logger().debug(f'Fetching website title for "{url}"')
+
+        with WebDriver() as web_driver:
+            web_driver.driver.get(url)
+            source_code = web_driver.driver.page_source
+
+        title_element = BeautifulSoup(source_code, "html.parser").find('title')
+
+        title = (
+            title_element.text
+            if title_element is not None
+            else
+            ''
+        )
+
+        title = title.strip()[:max_len]
+
+        logger().debug(f'Fetched website title for "{url}": {title}')
+
+        return title
+
     def __init__(self, dl_path: Path, is_silent: bool = False):
         self.__dl_path = dl_path
         self.__is_silent = is_silent
+        self.__max_retry = 5
 
     @abstractmethod
-    def _download(self, url: str, output_title: str = '') -> Path | None:
+    def _get_video_url(self, url: str, output_title: str) -> Path | None:
         pass
 
     def get_home_url(self) -> str:
         return f'https://{self.get_domain()}/'
-
-    @abstractmethod
-    def get_title(self, url: str) -> str:
-        pass
 
     def download(self, url: str, output_title: str = '') -> Path | None:
         if not output_title:
@@ -57,8 +79,29 @@ class DlBase(ABC):
         logger().debug(f'  with download_dir: {self.dl_path}')
         logger().debug(f'  with output_title: {output_title_escaped}')
         logger().debug(f'  with is_silent: {self.is_silent}')
+        logger().debug(f'  with max_retry: {self.max_retry}')
 
-        return self._download(url, output_title_escaped)
+        dl_result = None
+
+        for retry_counter in range(self.max_retry):
+            logger().debug(f'Try to download video for {retry_counter + 1} time ...')
+            dl_result = self._get_video_url(url, output_title_escaped)
+            logger().debug(f'Try to download video for {retry_counter + 1} time ... Done')
+
+            if dl_result is not None:
+                break
+
+        return dl_result
+
+    def download_video(self, url: str, output_filename) -> Path | None:
+        # TODO
+        pass
+
+    def set_max_retry(self, max_retry: int) -> None:
+        if max_retry <= 0:
+            return
+
+        self.__max_retry = max_retry
 
     @property
     def dl_path(self) -> Path:
@@ -67,3 +110,7 @@ class DlBase(ABC):
     @property
     def is_silent(self) -> bool:
         return self.__is_silent
+
+    @property
+    def max_retry(self) -> int:
+        return self.__max_retry

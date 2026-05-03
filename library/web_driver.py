@@ -1,11 +1,15 @@
 
 from pathlib import Path
+from urllib.parse import urlparse
 import requests
 from os import environ
+from selenium.common import NoSuchElementException
 from selenium.webdriver.firefox.webdriver import WebDriver as SeleniumWebDriver
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.relative_locator import RelativeBy
+
+from library.log_helper import logger
 
 
 class WebDriver:
@@ -60,15 +64,48 @@ class WebDriver:
     def quit(self) -> None:
         self._release_web_driver()
 
+    def get(self, url: str, referer: str = '', pre_load: int = 0) -> None:
+        if not referer:
+            referer = urlparse(url).scheme + '://' + urlparse(url).netloc
+
+        if pre_load < 0:
+            pre_load = 0
+
+        for i in range(pre_load + 1):
+            if pre_load == i:
+                logging_msg = f'Formal-loading {i + 1} for "{url}"'
+            else:
+                logging_msg = f'Pre-loading {i + 1} times for "{url}"'
+
+            logger().debug(f"{logging_msg} ...")
+
+            self.driver.get(referer)
+            self.driver.get(url)
+
+            logger().debug(f"{logging_msg} ... Done")
+
+    def find_element(
+        self,
+        by: str | RelativeBy,
+        selector: str,
+    ) -> WebElement | None:
+        try:
+            element = self.driver.find_element(by, selector)
+        except NoSuchElementException:
+            logger().error(f'Failed to locate element "{selector}" by "{by if isinstance(by, str) else by.__class__.__name__}".')
+            return None
+
+        return element
+
     def fill_element(
         self,
         by: str | RelativeBy,
         selector: str,
         value: str,
     ) -> bool:
-        element = self.driver.find_element(by, selector)
+        element = self.find_element(by, selector)
 
-        if not isinstance(element, WebElement):
+        if element is None:
             return False
 
         element.send_keys(value)
@@ -80,9 +117,9 @@ class WebDriver:
         by: str | RelativeBy,
         selector: str,
     ) -> bool:
-        element = self.driver.find_element(by, selector)
+        element = self.find_element(by, selector)
 
-        if not isinstance(element, WebElement):
+        if element is None:
             return False
 
         element.click()

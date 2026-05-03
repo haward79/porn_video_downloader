@@ -61,3 +61,12 @@ def make_request_header(url: str, referer_url: str = '') -> Dict[str, str]:
             'Referer': make_request_referer(url, referer_url)
         }
     }
+
+
+def extract_string(string: str, start_index: int, end_delimiter: str) -> str:
+    end_index = string.find(end_delimiter, start_index+1)
+
+    if end_index == -1:
+        return ''
+
+    return string[start_index:end_index]
