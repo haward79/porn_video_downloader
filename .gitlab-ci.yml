@@ -45,6 +45,8 @@ sonar_scan:
       - "${SONAR_USER_HOME}/cache"
       - sonar-scanner/
   image: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/lazy_images/sonar_scanner
+  script:
+    - .
 
 push-github:
   needs:
