@@ -1,4 +1,5 @@
 
+from os import environ
 from pathlib import Path
 from typing import List
 import yaml
@@ -10,7 +11,14 @@ from library.log_helper import logger
 class TestCase:
     @staticmethod
     def from_yml(_file: Path | None = None) -> List['TestCase']:
-        if _file is None:
+        if (
+            _file is None and
+            (tcf_env := environ.get('TEST_CASES_FILE')) and
+            isinstance(tcf_env, str) and
+            (tcf_env_path := Path(tcf_env)).is_file()
+        ):
+            file = tcf_env_path
+        elif _file is None:
             file = Path('test_cases.yml')
         else:
             file = _file
