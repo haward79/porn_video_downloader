@@ -38,12 +38,6 @@ sonar_scan:
   needs:
     - static_analysis
     - self_test
-  cache:
-    policy: pull-push
-    key: "sonar-cache-$CI_COMMIT_REF_SLUG"
-    paths:
-      - "${SONAR_USER_HOME}/cache"
-      - sonar-scanner/
   image: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/lazy_images/sonar_scanner
   script:
     - entry.bash
