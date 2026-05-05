@@ -25,6 +25,14 @@ class TestCase:
         if not isinstance(data, list):
             return []
 
+        for datum_index, datum in enumerate(data):
+            if not isinstance(datum, dict):
+                datum.pop(datum_index)
+                continue
+
+            if 'filepath' in datum and isinstance(datum['filepath'], str):
+                datum['filepath'] = Path(datum['filepath'])
+
         return [TestCase(**datum) for datum in data]
 
     def __init__(
@@ -35,8 +43,8 @@ class TestCase:
         size: int = -1,
         enabled: bool = False,
     ):
-        self.__url: str | None =url
-        self.__filepath: Path | None =filepath
+        self.__url: str | None = url
+        self.__filepath: Path | None = filepath
         self.__duration: float = duration
         self.__size: int = size
         self.__enabled: bool = enabled
