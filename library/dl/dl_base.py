@@ -60,6 +60,8 @@ class DlBase(ABC):
 
         return title
 
+    SELENIUM_FIND_TIMEOUT = 60
+
     def __init__(self, dl_path: Path, is_silent: bool = False):
         self.__dl_path = dl_path
         self.__is_silent = is_silent

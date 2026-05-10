@@ -4,11 +4,13 @@ from time import sleep
 from urllib.parse import urlparse
 import requests
 from os import environ
-from selenium.common import NoSuchElementException
+from selenium.common import NoSuchElementException, TimeoutException
 from selenium.webdriver.firefox.webdriver import WebDriver as SeleniumWebDriver
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.relative_locator import RelativeBy
+from selenium.webdriver.support.wait import WebDriverWait
 
 from library.log_helper import logger
 
@@ -90,10 +92,16 @@ class WebDriver:
         self,
         by: str | RelativeBy,
         selector: str,
+        timeout: int = 0,
     ) -> WebElement | None:
         try:
+            if timeout > 0:
+                WebDriverWait(self.driver, timeout).until(
+                    expected_conditions.presence_of_element_located((str(by), selector))
+                )
+
             element = self.driver.find_element(str(by), selector)
-        except NoSuchElementException:
+        except (NoSuchElementException, TimeoutException):
             logger().error(f'Failed to locate element "{selector}" by "{by if isinstance(by, str) else by.__class__.__name__}".')
             return None
 
