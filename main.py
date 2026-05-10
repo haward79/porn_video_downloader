@@ -15,6 +15,22 @@ from library.util import format_url_list, BashColor
 URL_FAILED_FILENAME = 'url_failed.txt'
 
 
+def interactive_mode_download_dir() -> str:
+    download_dir = ''
+
+    while not download_dir:
+        download_dir = input('\nDirectory to save downloaded videos [default=./]: ')
+
+        if len(download_dir) == 0:
+            download_dir = './'
+
+        if not Path(download_dir).is_dir():
+            download_dir = ''
+            print('Directory must be a existed directory')
+
+    return download_dir
+
+
 def interactive_mode(download_dir: str, is_silent: bool) -> bool:
     print(f'\n{BashColor.GREEN}[ New Case ]{BashColor.CLEAR}')
 
@@ -50,54 +66,108 @@ def interactive_mode(download_dir: str, is_silent: bool) -> bool:
     return True
 
 
+def interactive_mode_wrapper(args: Namespace) -> bool:
+    if args.download_dir:
+        download_dir = args.download_dir
+    else:
+        download_dir = interactive_mode_download_dir()
+
+    print(f'\nDirectory to save downloaded videos: {download_dir}')
+    logger().info(f'Parameter download_dir is set to "{download_dir}" through stdio manually')
+
+    while interactive_mode(download_dir, args.is_silent):
+        pass  # NOSONAR
+
+    return True
+
+
+def batch_mode_download(
+    case_id: int,
+    download_dir: str,
+    url: str,
+    is_silent: bool,
+    is_self_testing: bool,
+) -> Path | None:
+    print(f'\n{BashColor.GREEN}[ Case {case_id} ]{BashColor.CLEAR}')
+    logger().info(f'[ Case {case_id} ]')
+
+    downloader = DlBase.determine_downloader(url)
+
+    if downloader is None:
+        msg = f'[ Case {case_id} ] NOT supported url: "{url}"'
+        logger().error(msg)
+        stdout(msg)
+        return None
+
+    downloader_instance = downloader(Path(download_dir), is_silent)
+    downloaded_filepath = downloader_instance.download(url)
+
+    if downloaded_filepath is not None:
+        return downloaded_filepath
+
+    msg = f'[ Case {case_id} ] Video download failed'
+    logger().error(msg)
+    stdout(msg)
+
+    if is_self_testing:
+        return None
+
+    with open(URL_FAILED_FILENAME, 'a') as f:
+        f.write(url + '\n')
+
+    return None
+
+
+def batch_mode_validate(
+    case_id: int,
+    downloaded_filepath: Path,
+    url: str,
+    validation_data: List[TestCase],
+) -> bool:
+    validator = next(iter([datum for datum in validation_data if datum.url == url]), None)
+
+    if validator is None:
+        msg = f'[ Case {case_id} ] Validation data is NOT found for url "{url}"'
+        logger().error(msg)
+        stdout(msg)
+        return False
+
+    if validator.validate(downloaded_filepath):
+        msg = f'[ Case {case_id} ] Validation successfully for url "{url}"'
+        logger().info(msg)
+        stdout(msg)
+        return True
+
+    msg = f'[ Case {case_id} ] Validation FAILED for url "{url}"'
+    logger().info(msg)
+    stdout(msg)
+    return False
+
+
 def batch_mode(download_dir: str, urls: List[str], is_silent: bool, validation_data: List[TestCase]) -> int:
     self_test_mode = len(validation_data) > 0
     success_count = 0
 
     for i, url in enumerate(urls):
-        print(f'\n{BashColor.GREEN}[ Case {i+1} ]{BashColor.CLEAR}')
-        logger().info(f'[ Case {i+1} ]')
-
-        downloader = DlBase.determine_downloader(url)
-
-        if downloader is None:
-            msg = f'[ Case {i+1} ] NOT supported url: "{url}"'
-            logger().error(msg)
-            stdout(msg)
-            continue
-
-        downloader_instance = downloader(Path(download_dir), is_silent)
-        downloaded_filepath = downloader_instance.download(url)
+        downloaded_filepath = batch_mode_download(
+            i+1,
+            download_dir,
+            url,
+            is_silent,
+            self_test_mode,
+        )
 
         if downloaded_filepath is None:
-            msg = f'[ Case {i+1} ] Video download failed'
-            logger().error(msg)
-            stdout(msg)
-
-            if not self_test_mode:
-                with open(URL_FAILED_FILENAME, 'a') as fout:
-                    fout.write(url + '\n')
-
             continue
 
-        validator = next(iter([datum for datum in validation_data if datum.url == url]), None)
-
         if self_test_mode:
-            if validator is None:
-                msg = f'[ Case {i+1} ] Validation data is NOT found for url "{url}"'
-                logger().error(msg)
-                stdout(msg)
-                continue
-
-            if validator.validate(downloaded_filepath):
+            if batch_mode_validate(
+                i + 1,
+                downloaded_filepath,
+                url,
+                validation_data,
+            ):
                 success_count += 1
-                msg = f'[ Case {i+1} ] Validation successfully for url "{url}"'
-                logger().info(msg)
-                stdout(msg)
-            else:
-                msg = f'[ Case {i + 1} ] Validation FAILED for url "{url}"'
-                logger().info(msg)
-                stdout(msg)
 
             continue
 
@@ -118,8 +188,41 @@ def batch_mode(download_dir: str, urls: List[str], is_silent: bool, validation_d
     return success_count
 
 
+def batch_mode_wrapper(args: Namespace) -> bool:
+    test_cases = []
+
+    if args.self_test:
+        test_cases = TestCase.from_yml()
+        urls = [
+            case.url
+            for case in test_cases
+            if case.enabled
+            if case.url is not None
+        ]
+    else:
+        if not Path(args.urls_path).is_file():
+            msg = f'Parameter urls_path is set to "{args.urls_path}" which is NOT a file'
+            logger().error(msg)
+            stdout(msg)
+            return False
+
+        with open(args.urls_path) as fin:
+            urls = fin.readlines()
+
+        msg = f'{len(urls)} urls loaded from file "{args.urls_path}"'
+        logger().info(msg)
+        stdout(msg)
+
+    urls = format_url_list(urls)
+
+    msg = f'{len(urls)} urls are filtered and accepted'
+    logger().info(msg)
+    stdout(msg)
+
+    return batch_mode(args.download_dir, urls, args.is_silent, test_cases) == len(urls)
+
+
 def main() -> bool:
-    has_failure = False
     args = parse_args()
 
     if not isinstance(args, Namespace):
@@ -140,66 +243,12 @@ def main() -> bool:
     if args.work_dir is not None:
         chdir(args.work_dir)
 
-    # Interactive mode
-    if (not args.self_test) and (not args.urls_path or not args.urls_path):
-        if args.download_dir:
-            download_dir = args.download_dir
-        else:
-            download_dir = ''
-
-            while not download_dir:
-                download_dir = input('\nDirectory to save downloaded videos [default=./]: ')
-
-                if len(download_dir) == 0:
-                    download_dir = './'
-
-                if not Path(download_dir).is_dir():
-                    download_dir = ''
-                    print('Directory must be existed')
-
-        print(f'\nDirectory to save downloaded videos: {download_dir}')
-        logger().info(f'Parameter download_dir is set to "{download_dir}" through stdio manually')
-
-        while interactive_mode(download_dir, args.is_silent):
-            pass
-
-    # Batch mode
+    if not args.self_test and not args.urls_path:
+        is_success = interactive_mode_wrapper(args)
     else:
-        test_cases = []
+        is_success = batch_mode_wrapper(args)
 
-        if args.self_test:
-            test_cases = TestCase.from_yml()
-            urls = [
-                case.url
-                for case in test_cases
-                if case.enabled
-                if case.url is not None
-            ]
-        else:
-            if not Path(args.urls_path).is_file():
-                msg = f'Parameter urls_path is set to "{args.urls_path}" which is NOT a file'
-                logger().error(msg)
-                stdout(msg)
-                return False
-
-            with open(args.urls_path) as fin:
-                urls = fin.readlines()
-
-            msg = f'{len(urls)} urls loaded from file "{args.urls_path}"'
-            logger().info(msg)
-            stdout(msg)
-
-        urls = format_url_list(urls)
-
-        msg = f'{len(urls)} urls are filtered and accepted'
-        logger().info(msg)
-        stdout(msg)
-
-        success_count = batch_mode(args.download_dir, urls, args.is_silent, test_cases)
-
-        has_failure = has_failure or success_count != len(urls)
-
-    return not has_failure
+    return is_success
 
 
 if __name__ == '__main__':

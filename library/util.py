@@ -105,6 +105,6 @@ def format_url_list(urls: List[str]) -> List[str]:
         elif urls[i].endswith('\r') or urls[i].endswith('\n'):
             urls[i] = urls[i][:-1]
 
-    urls = list(set([url for url in urls if len(url) > 0]))
+    urls = list({url for url in urls if len(url) > 0})
 
     return urls

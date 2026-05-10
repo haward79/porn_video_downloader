@@ -9,7 +9,7 @@ def stdout(*args, **kwargs) -> None:
 
 def logger() -> logging.Logger:
     if __logger_instance is None:
-        raise Exception('Logger not initialized.')
+        raise ValueError('Logger NOT initialized')
 
     return __logger_instance
 

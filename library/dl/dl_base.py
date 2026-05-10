@@ -75,7 +75,7 @@ class DlBase(ABC):
         pass
 
     def _preview_download(self, url: str, referer: str = '') -> str:
-        with requests.get(url, stream=True, headers=make_request_header(url, referer), verify=False) as request:
+        with requests.get(url, stream=True, headers=make_request_header(url, referer)) as request:
             if request.status_code != 200:
                 return ''
 
@@ -85,7 +85,7 @@ class DlBase(ABC):
 
     def _download_file(self, url: str, filename: Path, referer: str = '', show_progress: bool = False) -> Path | None:
         try:
-            request = requests.get(url, stream=True, headers=make_request_header(url, referer), verify=False)
+            request = requests.get(url, stream=True, headers=make_request_header(url, referer))
 
         except requests.exceptions.ConnectionError as e:
             if str(e).find('Temporary failure in name resolution') != -1:
