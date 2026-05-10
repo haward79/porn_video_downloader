@@ -44,13 +44,17 @@ class DlBase(ABC):
         title_element = BeautifulSoup(source_code, "html.parser").find('title')
 
         title = (
-            title_element.text
+            title_element.text.strip()
             if title_element is not None
             else
             ''
         )
 
-        title = title.strip()[:max_len]
+        for title_suffix in ('XVIDEOS.COM', '五樓自拍', '-'):
+            if title.endswith(title_suffix):
+                title = title[:-(len(title_suffix))].strip()
+
+        title = title[:max_len]
 
         logger().debug(f'Fetched website title for "{url}": {title}')
 
@@ -177,7 +181,7 @@ class DlBase(ABC):
 
         output_title_escaped = output_title.replace('\\', '').replace('/', '')
 
-        logger().debug(f'Trying to analysis and download video from the url')
+        logger().debug('Trying to analysis and download video from the url')
         logger().debug(f'  with url: {url}')
         logger().debug(f'  with download_dir: {self.dl_path}')
         logger().debug(f'  with output_title: {output_title_escaped}')

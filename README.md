@@ -71,7 +71,6 @@ Then, follow the on-screen instructions to start using the program.
 
 - Optimize the **self-test function**.
 - Fix bugs for **tktube** and **iwant**.
-- Remove unnecessary suffixes from website titles.
 - Add **multi-threaded support** for faster downloads.
 
 # Copyright
