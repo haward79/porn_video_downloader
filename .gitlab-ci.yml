@@ -33,6 +33,7 @@ self_test:
     - mkdir download
   script:
     - uv run python main.py --download-dir download --self-test
+    - cat CHECKME.log || true
 
 sonar_scan:
   needs:
