@@ -5,9 +5,9 @@ allows you to download videos from supported websites.
 
 Currently, the program supports videos from the following websites:
 
+- 85po.com
 - xvideos.com
 - porn5f.com
-- 85po.com
 - tktube.com
 - iwant-sex.com
 
@@ -69,9 +69,9 @@ Then, follow the on-screen instructions to start using the program.
 
 # TODO or Known Issues
 
-- Optimize the **self-test function**.
-- Fix bugs for **tktube** and **iwant**.
-- Add **multi-threaded support** for faster downloads.
+- Fix cloudflare blocking issues for **tktube**, **iwant** and *missav*.
+- Test for **5f** after their site online.
+- Add **multithreaded support** for faster download.
 
 # Copyright
 
