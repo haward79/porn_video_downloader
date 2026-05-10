@@ -1,5 +1,6 @@
 
 from pathlib import Path
+from time import sleep
 from urllib.parse import urlparse
 import requests
 from os import environ
@@ -73,13 +74,14 @@ class WebDriver:
 
         for i in range(pre_load + 1):
             if pre_load == i:
-                logging_msg = f'Formal-loading {i + 1} for "{url}"'
+                logging_msg = f'Formal-loading for "{url}"'
             else:
                 logging_msg = f'Pre-loading {i + 1} times for "{url}"'
 
             logger().debug(f"{logging_msg} ...")
 
             self.driver.get(referer)
+            sleep(1)
             self.driver.get(url)
 
             logger().debug(f"{logging_msg} ... Done")
