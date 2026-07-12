@@ -1,5 +1,6 @@
 
 from abc import ABC, abstractmethod
+from os import environ
 from pathlib import Path
 from typing import Type
 import requests
@@ -65,7 +66,16 @@ class DlBase(ABC):
     def __init__(self, dl_path: Path, is_silent: bool = False):
         self.__dl_path = dl_path
         self.__is_silent = is_silent
-        self.__max_retry = 5
+        self.__max_retry = (
+            int(dl_max_retry)
+            if (
+                (dl_max_retry := environ.get('DL_MAX_RETRY')) and
+                dl_max_retry.isdigit() and
+                int(dl_max_retry) > 0
+            )
+            else
+            5
+        )
 
         if not self.__dl_path.is_dir():
             self.__dl_path.mkdir(parents=True, exist_ok=True)
