@@ -1,12 +1,10 @@
 
-from pathlib import Path
 from time import sleep
 from urllib.parse import urlparse
 import requests
 from os import environ
+import undetected_chromedriver as uc
 from selenium.common import NoSuchElementException, TimeoutException
-from selenium.webdriver.firefox.webdriver import WebDriver as SeleniumWebDriver
-from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.relative_locator import RelativeBy
@@ -17,27 +15,16 @@ from library.log_helper import logger
 
 class WebDriver:
     @staticmethod
-    def create_web_driver() -> SeleniumWebDriver:
-        if (sh_env := environ.get('SELENIUM_HEADLESS')) and str(sh_env).lower() == 'false':
-            return SeleniumWebDriver()
+    def create_web_driver() -> uc.Chrome:
+        headless = not ((sh_env := environ.get('SELENIUM_HEADLESS')) and str(sh_env).lower() == 'false')
 
-        options = Options()
-        options.add_argument("--headless")
+        chrome = uc.Chrome(headless=headless)
+        chrome.set_page_load_timeout(60)
 
-        firefox = SeleniumWebDriver(options=options)
-        firefox.set_page_load_timeout(60)
-
-        return firefox
-
-    @staticmethod
-    def clear_web_driver_logs() -> None:
-        log = Path('geckodriver.log')
-
-        if log.is_file():
-            log.unlink(missing_ok=True)
+        return chrome
 
     def __init__(self):
-        self._driver: SeleniumWebDriver | None = None
+        self._driver: uc.Chrome | None = None
 
     def __enter__(self):
         return self
@@ -45,13 +32,13 @@ class WebDriver:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.quit()
 
-    def _get_web_driver(self) -> SeleniumWebDriver:
+    def _get_web_driver(self) -> uc.Chrome:
         if self._driver:
             return self._driver
 
         self._driver = self.create_web_driver()
 
-        assert(isinstance(self._driver, SeleniumWebDriver))
+        assert(isinstance(self._driver, uc.Chrome))
 
         return self._driver
 
@@ -61,8 +48,6 @@ class WebDriver:
 
         self._driver.quit()
         self._driver = None
-
-        self.clear_web_driver_logs()
 
     def quit(self) -> None:
         self._release_web_driver()
@@ -152,5 +137,5 @@ class WebDriver:
         return session
 
     @property
-    def driver(self) -> SeleniumWebDriver:
+    def driver(self) -> uc.Chrome:
         return self._get_web_driver()
