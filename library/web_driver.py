@@ -2,6 +2,7 @@
 from time import sleep
 from urllib.parse import urlparse
 import requests
+from curl_cffi import requests as cf_requests
 from os import environ
 import undetected_chromedriver as uc
 from selenium.common import NoSuchElementException, TimeoutException
@@ -134,7 +135,29 @@ class WebDriver:
                 name=cookie['name'],
                 value=cookie['value'],
                 domain=cookie.get('domain'),
-                path=cookie.get('path')
+                path=cookie.get('path'),
+            )
+
+        session.headers.update({'User-Agent': self.user_agent})
+
+        return session
+
+    def to_cf_requests(self, visit_url: str | None = None) -> cf_requests.Session:
+        if visit_url:
+            self.driver.get(visit_url)
+
+        fallback_domain = (urlparse(visit_url).hostname or '') if visit_url else ''
+
+        cookies = self.driver.get_cookies()
+
+        session = cf_requests.Session(impersonate='chrome146')
+
+        for cookie in cookies:
+            session.cookies.set(
+                name=cookie['name'],
+                value=cookie['value'],
+                domain=cookie.get('domain') or fallback_domain,
+                path=cookie.get('path') or '/',
             )
 
         session.headers.update({'User-Agent': self.user_agent})

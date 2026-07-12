@@ -2,9 +2,8 @@
 from abc import ABC, abstractmethod
 from os import environ
 from pathlib import Path
-from time import sleep
 from typing import Type
-import requests
+import curl_cffi
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
@@ -87,24 +86,28 @@ class DlBase(ABC):
 
     def _preview_download(self, url: str, referer: str = '') -> str:
         with WebDriver() as web_driver:
-            session = web_driver.to_requests(referer)
+            session = web_driver.to_cf_requests(referer)
 
-        with session.get(url, stream=True) as request:
-            if request.status_code != 200:
-                return ''
+        request = session.get(url, stream=True)
 
-            first_chunk_bytes = next(request.iter_content(chunk_size=REQUEST_CHUNK_SIZE))
+        if request.status_code != 200:
+            request.close()
+            return ''
 
-            return first_chunk_bytes.decode(errors='ignore')
+        first_chunk_bytes = next(request.iter_content(chunk_size=REQUEST_CHUNK_SIZE))
+
+        request.close()
+
+        return first_chunk_bytes.decode(errors='ignore')
 
     def _download_file(self, url: str, filename: Path, referer: str = '', show_progress: bool = False) -> Path | None:
         with WebDriver() as web_driver:
-            session = web_driver.to_requests(referer)
+            session = web_driver.to_cf_requests(referer)
 
         try:
             request = session.get(url, stream=True)
 
-        except requests.exceptions.ConnectionError as e:
+        except curl_cffi.exceptions.ConnectionError as e:
             if str(e).find('Temporary failure in name resolution') != -1:
                 logger().error('DNS related error occurred. It may due to too many concurrent connection to your DNS server.')
             else:
@@ -113,8 +116,9 @@ class DlBase(ABC):
             return None
 
         if request.status_code != 200:
-            error_message = request.content.decode(errors='ignore')
+            error_message = request.text
             logger().error(f'Error occurred during file download. Here is the error message: {request.status_code} {make_oneline_error_message(str(error_message))}')
+            request.close()
             return None
 
         content_bytes_str = request.headers.get('content-length')
