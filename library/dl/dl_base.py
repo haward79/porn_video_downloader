@@ -2,6 +2,7 @@
 from abc import ABC, abstractmethod
 from os import environ
 from pathlib import Path
+from time import sleep
 from typing import Type
 import requests
 from bs4 import BeautifulSoup
@@ -9,7 +10,7 @@ from tqdm import tqdm
 
 from library.ffmpeg_helper import download_m3u8
 from library.log_helper import logger
-from library.util import make_request_header, REQUEST_CHUNK_SIZE, get_unique_filepath, make_oneline_error_message
+from library.util import REQUEST_CHUNK_SIZE, get_unique_filepath, make_oneline_error_message
 from library.web_driver import WebDriver
 
 
@@ -86,9 +87,9 @@ class DlBase(ABC):
 
     def _preview_download(self, url: str, referer: str = '') -> str:
         with WebDriver() as web_driver:
-            session = web_driver.to_requests()
+            session = web_driver.to_requests(referer)
 
-        with session.get(url, stream=True, headers=make_request_header(url, referer)) as request:
+        with session.get(url, stream=True) as request:
             if request.status_code != 200:
                 return ''
 
@@ -98,10 +99,10 @@ class DlBase(ABC):
 
     def _download_file(self, url: str, filename: Path, referer: str = '', show_progress: bool = False) -> Path | None:
         with WebDriver() as web_driver:
-            session = web_driver.to_requests()
+            session = web_driver.to_requests(referer)
 
         try:
-            request = session.get(url, stream=True, headers=make_request_header(url, referer))
+            request = session.get(url, stream=True)
 
         except requests.exceptions.ConnectionError as e:
             if str(e).find('Temporary failure in name resolution') != -1:
@@ -113,7 +114,7 @@ class DlBase(ABC):
 
         if request.status_code != 200:
             error_message = request.content.decode(errors='ignore')
-            logger().error(f'Error occurred during file download. Here is the error message: {make_oneline_error_message(str(error_message))}')
+            logger().error(f'Error occurred during file download. Here is the error message: {request.status_code} {make_oneline_error_message(str(error_message))}')
             return None
 
         content_bytes_str = request.headers.get('content-length')

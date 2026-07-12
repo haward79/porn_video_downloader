@@ -121,7 +121,10 @@ class WebDriver:
 
         return True
 
-    def to_requests(self) -> requests.Session:
+    def to_requests(self, visit_url: str | None = None) -> requests.Session:
+        if visit_url:
+            self.driver.get(visit_url)
+
         cookies = self.driver.get_cookies()
 
         session = requests.Session()
@@ -144,7 +147,7 @@ class WebDriver:
 
     @property
     def cookies(self) -> dict:
-        return { c['name']: c['value'] for c in self._get_web_driver().get_cookies() }
+        return { c['name']: c['value'] for c in self.driver.get_cookies() }
 
     @property
     def user_agent(self) -> str:
