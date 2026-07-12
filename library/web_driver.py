@@ -134,8 +134,18 @@ class WebDriver:
                 path=cookie.get('path')
             )
 
+        session.headers.update({'User-Agent': self.user_agent})
+
         return session
 
     @property
     def driver(self) -> uc.Chrome:
         return self._get_web_driver()
+
+    @property
+    def cookies(self) -> dict:
+        return { c['name']: c['value'] for c in self._get_web_driver().get_cookies() }
+
+    @property
+    def user_agent(self) -> str:
+        return self.driver.execute_script('return navigator.userAgent;')

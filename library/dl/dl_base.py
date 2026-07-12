@@ -85,7 +85,10 @@ class DlBase(ABC):
         pass
 
     def _preview_download(self, url: str, referer: str = '') -> str:
-        with requests.get(url, stream=True, headers=make_request_header(url, referer)) as request:
+        with WebDriver() as web_driver:
+            session = web_driver.to_requests()
+
+        with session.get(url, stream=True, headers=make_request_header(url, referer)) as request:
             if request.status_code != 200:
                 return ''
 
@@ -94,8 +97,11 @@ class DlBase(ABC):
             return first_chunk_bytes.decode(errors='ignore')
 
     def _download_file(self, url: str, filename: Path, referer: str = '', show_progress: bool = False) -> Path | None:
+        with WebDriver() as web_driver:
+            session = web_driver.to_requests()
+
         try:
-            request = requests.get(url, stream=True, headers=make_request_header(url, referer))
+            request = session.get(url, stream=True, headers=make_request_header(url, referer))
 
         except requests.exceptions.ConnectionError as e:
             if str(e).find('Temporary failure in name resolution') != -1:
