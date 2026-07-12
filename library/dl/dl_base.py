@@ -1,14 +1,15 @@
 
 from abc import ABC, abstractmethod
+from os import environ
 from pathlib import Path
 from typing import Type
-import requests
+import curl_cffi
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 from library.ffmpeg_helper import download_m3u8
 from library.log_helper import logger
-from library.util import make_request_header, REQUEST_CHUNK_SIZE, get_unique_filepath, make_oneline_error_message
+from library.util import REQUEST_CHUNK_SIZE, get_unique_filepath, make_oneline_error_message
 from library.web_driver import WebDriver
 
 
@@ -65,7 +66,16 @@ class DlBase(ABC):
     def __init__(self, dl_path: Path, is_silent: bool = False):
         self.__dl_path = dl_path
         self.__is_silent = is_silent
-        self.__max_retry = 5
+        self.__max_retry = (
+            int(dl_max_retry)
+            if (
+                (dl_max_retry := environ.get('DL_MAX_RETRY')) and
+                dl_max_retry.isdigit() and
+                int(dl_max_retry) > 0
+            )
+            else
+            5
+        )
 
         if not self.__dl_path.is_dir():
             self.__dl_path.mkdir(parents=True, exist_ok=True)
@@ -75,19 +85,29 @@ class DlBase(ABC):
         pass
 
     def _preview_download(self, url: str, referer: str = '') -> str:
-        with requests.get(url, stream=True, headers=make_request_header(url, referer)) as request:
-            if request.status_code != 200:
-                return ''
+        with WebDriver() as web_driver:
+            session = web_driver.to_cf_requests(referer)
 
-            first_chunk_bytes = next(request.iter_content(chunk_size=REQUEST_CHUNK_SIZE))
+        request = session.get(url, stream=True)
 
-            return first_chunk_bytes.decode(errors='ignore')
+        if request.status_code != 200:
+            request.close()
+            return ''
+
+        first_chunk_bytes = next(request.iter_content(chunk_size=REQUEST_CHUNK_SIZE))
+
+        request.close()
+
+        return first_chunk_bytes.decode(errors='ignore')
 
     def _download_file(self, url: str, filename: Path, referer: str = '', show_progress: bool = False) -> Path | None:
-        try:
-            request = requests.get(url, stream=True, headers=make_request_header(url, referer))
+        with WebDriver() as web_driver:
+            session = web_driver.to_cf_requests(referer)
 
-        except requests.exceptions.ConnectionError as e:
+        try:
+            request = session.get(url, stream=True)
+
+        except curl_cffi.exceptions.ConnectionError as e:
             if str(e).find('Temporary failure in name resolution') != -1:
                 logger().error('DNS related error occurred. It may due to too many concurrent connection to your DNS server.')
             else:
@@ -96,8 +116,9 @@ class DlBase(ABC):
             return None
 
         if request.status_code != 200:
-            error_message = request.content.decode(errors='ignore')
-            logger().error(f'Error occurred during file download. Here is the error message: {make_oneline_error_message(str(error_message))}')
+            error_message = request.text
+            logger().error(f'Error occurred during file download. Here is the error message: {request.status_code} {make_oneline_error_message(str(error_message))}')
+            request.close()
             return None
 
         content_bytes_str = request.headers.get('content-length')

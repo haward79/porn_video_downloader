@@ -176,7 +176,7 @@ def batch_mode(download_dir: str, urls: List[str], is_silent: bool, validation_d
         logger().info(msg)
         stdout(msg)
 
-    logger().info('\nAll cases are done')
+    logger().info('All cases are done')
     logger().info(f'{success_count}/{len(urls)} cases complete successfully')
 
     print('\nAll cases are done')
