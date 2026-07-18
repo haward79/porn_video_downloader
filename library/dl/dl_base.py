@@ -61,6 +61,22 @@ class DlBase(ABC):
 
         return title
 
+    @staticmethod
+    def handle_request_exception(exception: curl_cffi.exceptions.RequestException) -> None:
+        exception_str = str(exception)
+
+        if exception_str.find('Could not resolve host') != -1:
+            logger().error(
+                'DNS related error occurred. ' +
+                'It may due to too many concurrent connection to your DNS server.'
+            )
+            return
+
+        logger().error(
+            'Error occurred during file download. ' +
+            f'Here is the error message: {make_oneline_error_message(exception_str)}'
+        )
+
     SELENIUM_FIND_TIMEOUT = 60
 
     def __init__(self, dl_path: Path, is_silent: bool = False):
@@ -88,7 +104,11 @@ class DlBase(ABC):
         with WebDriver() as web_driver:
             session = web_driver.to_cf_requests(referer)
 
-        request = session.get(url, stream=True)
+        try:
+            request = session.get(url, stream=True)
+        except curl_cffi.exceptions.RequestException as e:
+            self.handle_request_exception(e)
+            return ''
 
         if request.status_code != 200:
             request.close()
@@ -107,12 +127,9 @@ class DlBase(ABC):
         try:
             request = session.get(url, stream=True)
 
-        except curl_cffi.exceptions.ConnectionError as e:
-            if str(e).find('Temporary failure in name resolution') != -1:
-                logger().error('DNS related error occurred. It may due to too many concurrent connection to your DNS server.')
-            else:
-                logger().error(f'Error occurred during file download. Here is the error message: {make_oneline_error_message(str(e))}')
 
+        except curl_cffi.exceptions.RequestException as e:
+            self.handle_request_exception(e)
             return None
 
         if request.status_code != 200:
