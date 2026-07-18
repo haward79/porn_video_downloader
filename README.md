@@ -67,6 +67,28 @@ uv run python main.py -h
 
 Then, follow the on-screen instructions to start using the program.
 
+# Troubleshooting
+
+## Cloudflare Blocking
+
+If you are experiencing Cloudflare blocking issues, please try the following:
+1. Use a Google Chrome-compatible browser and `undetected-chromedriver`, same as this project's default.
+2. Disable the driver's headless mode, which is NOT the default setting for this project.
+
+```bash
+export SELENIUM_HEADLESS=false
+export BROWSER_VER_MAIN=$(google-chrome --version | grep -Eo '\d+' | head -1 2> /dev/null)
+export DISPLAY=:99
+
+Xvfb "$DISPLAY" -screen 0 1280x1024x24 > /dev/null 2>&1 &
+XVFB_PID="$!"
+
+# Run the program as usual
+uv run python main.py -h
+
+kill "$XVFB_PID"
+```
+
 # TODO or Known Issues
 
 - Fix cloudflare blocking issues for **tktube**, **iwant** and *missav*.
