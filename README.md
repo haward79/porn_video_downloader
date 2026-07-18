@@ -43,7 +43,7 @@ Currently, the program supports videos from the following websites:
 There are **minimal hardware requirements** for this program.
 
 - Most modern systems can run it without issues.
-- Even a **Raspberry Pi 3** is sufficient.
+- Even a **Raspberry Pi 3** is enough.
 
 # Install
 
@@ -91,8 +91,8 @@ kill "$XVFB_PID"
 
 # TODO or Known Issues
 
-- Fix cloudflare blocking issues for **tktube**, **iwant** and *missav*.
-- Test for **5f** after their site online.
+- Fix cloudflare blocking issues for **iwant** and **missav**.
+- Test for **5f** and **tktube** after their site online.
 - Add **multithreaded support** for faster download.
 
 # Copyright
