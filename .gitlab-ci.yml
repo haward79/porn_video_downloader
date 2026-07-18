@@ -27,13 +27,17 @@ static_analysis:
 self_test:
   needs:
     - static_analysis
+  variables:
+    SELENIUM_HEADLESS: false
   before_script:
     - uv sync --frozen
-    # For saving videos
     - mkdir download
   script:
+    - Xvfb :99 -screen 0 1280x1024x24 &
+    - XVFB_PID="$!"
     - uv run python main.py --download-dir download --self-test
     - cat CHECKME.log || true
+    - kill "$XVFB_PID" || true
 
 sonar_scan:
   needs:
