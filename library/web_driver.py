@@ -3,7 +3,6 @@ from time import sleep
 from urllib.parse import urlparse
 import requests
 from curl_cffi import requests as cf_requests
-from os import environ
 import undetected_chromedriver as uc
 from selenium.common import NoSuchElementException, TimeoutException
 from selenium.webdriver.remote.webelement import WebElement
@@ -12,14 +11,21 @@ from selenium.webdriver.support.relative_locator import RelativeBy
 from selenium.webdriver.support.wait import WebDriverWait
 
 from library.log_helper import logger
+from library.env_helper import EnvGetNumberRestriction, env_get_bool, env_get_int
 
 
 class WebDriver:
     @staticmethod
     def create_web_driver() -> uc.Chrome:
-        headless = not ((sh_env := environ.get('SELENIUM_HEADLESS')) and str(sh_env).lower() == 'false')
+        headless = env_get_bool('SELENIUM_HEADLESS', True)
+        browser_version_main = (
+            None
+            if (bvm_raw := env_get_int('BROWSER_VER_MAIN', 0, EnvGetNumberRestriction.POSITIVE)) == 0
+            else
+            bvm_raw
+        )
 
-        chrome = uc.Chrome(headless=headless)
+        chrome = uc.Chrome(headless=headless, version_main=browser_version_main)
         chrome.set_page_load_timeout(60)
 
         return chrome

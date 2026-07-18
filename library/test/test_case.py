@@ -1,9 +1,9 @@
 
-from os import environ
 from pathlib import Path
 from typing import List
 import yaml
 
+from library.env_helper import env_get_str
 from library.ffmpeg_helper import ffmpeg_media_info
 from library.log_helper import logger
 
@@ -13,15 +13,14 @@ class TestCase:
     def from_yml(_file: Path | None = None) -> List['TestCase']:
         if (
             _file is None and
-            (tcf_env := environ.get('TEST_CASES_FILE')) and
-            isinstance(tcf_env, str) and
+            (tcf_env := env_get_str('TEST_CASES_FILE')) and
             (tcf_env_path := Path(tcf_env)).is_file()
         ):
             file = tcf_env_path
-        elif _file is None:
-            file = Path('test_cases.yml')
-        else:
+        elif _file is not None:
             file = _file
+        else:
+            file = Path('test_cases.yml')
 
         if not file.is_file():
             logger().error(f'File for test cases "{file}" NOT found')
