@@ -29,7 +29,7 @@ self_test:
     - static_analysis
   variables:
     SELENIUM_HEADLESS: false
-    DISPLAY: :99
+    DISPLAY: ':99'
   before_script:
     - uv sync --frozen
     - mkdir download
