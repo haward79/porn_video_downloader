@@ -2,6 +2,7 @@
 from abc import ABC, abstractmethod
 from os import environ
 from pathlib import Path
+from time import sleep
 from typing import Type
 import curl_cffi
 from bs4 import BeautifulSoup
@@ -71,6 +72,14 @@ class DlBase(ABC):
                 'It may due to too many concurrent connection to your DNS server.'
             )
             return
+
+        if exception_str.find('Operation too slow') != -1:
+            logger().error(
+                'Network speed related error occurred. ' +
+                'It may due to poor network connection to Internet or your IP is limited. ' +
+                'I will try to sleep 1 minute and retry.'
+            )
+            sleep(60)
 
         logger().error(
             'Error occurred during file download. ' +
@@ -158,16 +167,21 @@ class DlBase(ABC):
                     desc='Download File',
                     disable=(content_bytes is not None)
                 ) as progress:
-                    # Download data for a chunk size at once.
-                    for slice_data in request.iter_content(chunk_size=REQUEST_CHUNK_SIZE):
-                        # Write chunk to disk.
-                        fout.write(slice_data)
+                    try:
+                        # Download data for a chunk size at once.
+                        for slice_data in request.iter_content(chunk_size=REQUEST_CHUNK_SIZE):
+                            # Write chunk to disk.
+                            fout.write(slice_data)
 
-                        # Update progress bar.
-                        progress.update(len(slice_data))
+                            # Update progress bar.
+                            progress.update(len(slice_data))
 
-                        downloaded_bytes += len(slice_data)
-                        logger().debug(f'File downloaded {downloaded_bytes} bytes in total {content_bytes} bytes.')
+                            downloaded_bytes += len(slice_data)
+                            logger().debug(f'File downloaded {downloaded_bytes} bytes in total {content_bytes} bytes.')
+
+                    except curl_cffi.exceptions.RequestException as e:
+                        self.handle_request_exception(e)
+                        return None
 
                 print()
 
