@@ -116,16 +116,19 @@ class DlBase(ABC):
         try:
             request = session.get(url, stream=True)
         except curl_cffi.exceptions.RequestException as e:
+            session.close()
             self.handle_request_exception(e)
             return ''
 
         if request.status_code != 200:
             request.close()
+            session.close()
             return ''
 
         first_chunk_bytes = next(request.iter_content(chunk_size=REQUEST_CHUNK_SIZE))
 
         request.close()
+        session.close()
 
         return first_chunk_bytes.decode(errors='ignore')
 
@@ -135,16 +138,18 @@ class DlBase(ABC):
 
         try:
             request = session.get(url, stream=True)
-
-
         except curl_cffi.exceptions.RequestException as e:
+            session.close()
             self.handle_request_exception(e)
             return None
 
         if request.status_code != 200:
-            error_message = request.text
-            logger().error(f'Error occurred during file download. Here is the error message: {request.status_code} {make_oneline_error_message(str(error_message))}')
             request.close()
+            session.close()
+            logger().error(
+                'Error occurred during file download. Here is the error message: ' +
+                f'{request.status_code} {make_oneline_error_message(str(request.text))}'
+            )
             return None
 
         content_bytes_str = request.headers.get('content-length')
@@ -180,6 +185,8 @@ class DlBase(ABC):
                             logger().debug(f'File downloaded {downloaded_bytes} bytes in total {content_bytes} bytes.')
 
                     except curl_cffi.exceptions.RequestException as e:
+                        request.close()
+                        session.close()
                         self.handle_request_exception(e)
                         return None
 
@@ -190,6 +197,7 @@ class DlBase(ABC):
                 fout.write(request.content)
 
         request.close()
+        session.close()
 
         if not filepath.is_file():
             logger().error(f'Downloaded file {filepath} NOT found. This may due to remote sent nothing or no write permission to file.')
