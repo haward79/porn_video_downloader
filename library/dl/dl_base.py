@@ -2,6 +2,7 @@
 from abc import ABC, abstractmethod
 from os import environ
 from pathlib import Path
+from time import sleep
 from typing import Type
 import curl_cffi
 from bs4 import BeautifulSoup
@@ -72,6 +73,14 @@ class DlBase(ABC):
             )
             return
 
+        if exception_str.find('Operation too slow') != -1:
+            logger().error(
+                'Network speed related error occurred. ' +
+                'It may due to poor network connection to Internet or your IP is limited. ' +
+                'I will try to sleep 1 minute and retry.'
+            )
+            sleep(60)
+
         logger().error(
             'Error occurred during file download. ' +
             f'Here is the error message: {make_oneline_error_message(exception_str)}'
@@ -107,16 +116,19 @@ class DlBase(ABC):
         try:
             request = session.get(url, stream=True)
         except curl_cffi.exceptions.RequestException as e:
+            session.close()
             self.handle_request_exception(e)
             return ''
 
         if request.status_code != 200:
             request.close()
+            session.close()
             return ''
 
         first_chunk_bytes = next(request.iter_content(chunk_size=REQUEST_CHUNK_SIZE))
 
         request.close()
+        session.close()
 
         return first_chunk_bytes.decode(errors='ignore')
 
@@ -126,16 +138,18 @@ class DlBase(ABC):
 
         try:
             request = session.get(url, stream=True)
-
-
         except curl_cffi.exceptions.RequestException as e:
+            session.close()
             self.handle_request_exception(e)
             return None
 
         if request.status_code != 200:
-            error_message = request.text
-            logger().error(f'Error occurred during file download. Here is the error message: {request.status_code} {make_oneline_error_message(str(error_message))}')
             request.close()
+            session.close()
+            logger().error(
+                'Error occurred during file download. Here is the error message: ' +
+                f'{request.status_code} {make_oneline_error_message(str(request.text))}'
+            )
             return None
 
         content_bytes_str = request.headers.get('content-length')
@@ -158,16 +172,23 @@ class DlBase(ABC):
                     desc='Download File',
                     disable=(content_bytes is not None)
                 ) as progress:
-                    # Download data for a chunk size at once.
-                    for slice_data in request.iter_content(chunk_size=REQUEST_CHUNK_SIZE):
-                        # Write chunk to disk.
-                        fout.write(slice_data)
+                    try:
+                        # Download data for a chunk size at once.
+                        for slice_data in request.iter_content(chunk_size=REQUEST_CHUNK_SIZE):
+                            # Write chunk to disk.
+                            fout.write(slice_data)
 
-                        # Update progress bar.
-                        progress.update(len(slice_data))
+                            # Update progress bar.
+                            progress.update(len(slice_data))
 
-                        downloaded_bytes += len(slice_data)
-                        logger().debug(f'File downloaded {downloaded_bytes} bytes in total {content_bytes} bytes.')
+                            downloaded_bytes += len(slice_data)
+                            logger().debug(f'File downloaded {downloaded_bytes} bytes in total {content_bytes} bytes.')
+
+                    except curl_cffi.exceptions.RequestException as e:
+                        request.close()
+                        session.close()
+                        self.handle_request_exception(e)
+                        return None
 
                 print()
 
@@ -176,6 +197,7 @@ class DlBase(ABC):
                 fout.write(request.content)
 
         request.close()
+        session.close()
 
         if not filepath.is_file():
             logger().error(f'Downloaded file {filepath} NOT found. This may due to remote sent nothing or no write permission to file.')

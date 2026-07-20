@@ -1,5 +1,6 @@
 
 from time import sleep
+from urllib.error import URLError
 from urllib.parse import urlparse
 import requests
 from curl_cffi import requests as cf_requests
@@ -12,6 +13,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 from library.log_helper import logger
 from library.env_helper import EnvGetNumberRestriction, env_get_bool, env_get_int
+from library.util import make_oneline_error_message
 
 
 class WebDriver:
@@ -25,7 +27,20 @@ class WebDriver:
             bvm_raw
         )
 
-        chrome = uc.Chrome(headless=headless, version_main=browser_version_main)
+        while True:
+            try:
+                chrome = uc.Chrome(headless=headless, version_main=browser_version_main)
+            except URLError as e:
+                logger().exception(
+                    'Error occurred during web driver creation. ' +
+                    'I will retry after 1 minute sleep. ' +
+                    'Here is the error message: ' +
+                    f'{make_oneline_error_message(str(e))}'
+                )
+                sleep(60)
+            else:
+                break
+
         chrome.set_page_load_timeout(60)
 
         return chrome
