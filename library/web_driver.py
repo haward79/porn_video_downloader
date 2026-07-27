@@ -82,16 +82,41 @@ class WebDriver:
             pre_load = 0
 
         for i in range(pre_load + 1):
-            if pre_load == i:
-                logging_msg = f'Formal-loading for "{url}"'
-            else:
-                logging_msg = f'Pre-loading {i + 1} times for "{url}"'
-
+            logging_msg = (
+                f'Formal-loading for "{url}"'
+                if pre_load == i
+                else
+                f'Pre-loading {i + 1} times for "{url}"'
+            )
             logger().debug(f"{logging_msg} ...")
 
-            self.driver.get(referer)
+            try:
+                self.driver.get(referer)
+            except TimeoutException:
+                logging_err_msg = 'FAILED due to loading referer timeout'
+                logging_msg = (
+                    f'Formal-loading for "{url}" {logging_err_msg}'
+                    if pre_load == i
+                    else
+                    f'Pre-loading {i + 1} times for "{url}" {logging_err_msg}'
+                )
+                logger().error(logging_msg)
+                continue
+
             sleep(1)
-            self.driver.get(url)
+
+            try:
+                self.driver.get(url)
+            except TimeoutException:
+                logging_err_msg = 'FAILED due to loading url timeout'
+                logging_msg = (
+                    f'Formal-loading for "{url}" {logging_err_msg}'
+                    if pre_load == i
+                    else
+                    f'Pre-loading {i + 1} times for "{url}" {logging_err_msg}'
+                )
+                logger().error(logging_msg)
+                continue
 
             logger().debug(f"{logging_msg} ... Done")
 
@@ -145,7 +170,10 @@ class WebDriver:
 
     def to_requests(self, visit_url: str | None = None) -> requests.Session:
         if visit_url:
-            self.driver.get(visit_url)
+            try:
+                self.driver.get(visit_url)
+            except TimeoutException:
+                logger().error(f'Visiting "{visit_url}" timeout in to_requests()')
 
         cookies = self.driver.get_cookies()
 
@@ -165,7 +193,10 @@ class WebDriver:
 
     def to_cf_requests(self, visit_url: str | None = None) -> cf_requests.Session:
         if visit_url:
-            self.driver.get(visit_url)
+            try:
+                self.driver.get(visit_url)
+            except TimeoutException:
+                logger().error(f'Visiting "{visit_url}" timeout in to_cf_requests()')
 
         fallback_domain = (urlparse(visit_url).hostname or '') if visit_url else ''
 
