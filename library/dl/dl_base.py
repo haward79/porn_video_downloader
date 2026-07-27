@@ -40,7 +40,7 @@ class DlBase(ABC):
         logger().debug(f'Fetching website title for "{url}"')
 
         with WebDriver() as web_driver:
-            web_driver.driver.get(url)
+            web_driver.get(url)
             source_code = web_driver.driver.page_source
 
         title_element = BeautifulSoup(source_code, "html.parser").find('title')
