@@ -77,7 +77,7 @@ If you are experiencing Cloudflare blocking issues, please try the following:
 
 ```bash
 export SELENIUM_HEADLESS=false
-export BROWSER_VER_MAIN=$(google-chrome --version | grep -Eo '\d+' | head -1 2> /dev/null)
+export BROWSER_VER_MAIN=$(google-chrome --version | grep -Eo '[0-9]+' | head -1 2> /dev/null)
 export DISPLAY=:99
 
 Xvfb "$DISPLAY" -screen 0 1280x1024x24 > /dev/null 2>&1 &
