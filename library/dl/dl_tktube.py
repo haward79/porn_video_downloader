@@ -23,7 +23,10 @@ class DlTktube(DlBase):
             if show_video_button is None:
                 return None
 
-            web_driver.driver.execute_script('arguments[0].click();', show_video_button)
+            web_driver.driver.execute_script(  # pyright: ignore[reportUnknownMemberType]
+                'arguments[0].click();',
+                show_video_button
+            )
 
             video_element = web_driver.find_element(
                 By.CSS_SELECTOR,
@@ -34,7 +37,7 @@ class DlTktube(DlBase):
             if video_element is None:
                 return None
 
-            video_url = video_element.get_attribute('src')
+            video_url = video_element.get_attribute('src')  # pyright: ignore[reportUnknownMemberType]
 
         if video_url is None:
             return None

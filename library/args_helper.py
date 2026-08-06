@@ -22,7 +22,7 @@ def get_args_parser() -> ArgumentParser:
 
 
 def check_args(args: Namespace) -> List[str]:
-    error_messages = []
+    error_messages: List[str] = []
 
     if args.urls_path is not None and not Path(args.urls_path).is_file():
         error_messages.append('--urls-file parameter error: must be a FILE')
@@ -37,7 +37,7 @@ def check_args(args: Namespace) -> List[str]:
 
 
 def parse_args() -> Namespace | List[str]:
-    error_messages = []
+    error_messages: List[str] = []
 
     try:
         args = get_args_parser().parse_args()

@@ -9,5 +9,5 @@
   "venvPath": ".",
   "venv": ".venv",
   "pythonVersion": "3.12",
-  "typeCheckingMode": "standard"
+  "typeCheckingMode": "strict"
 }

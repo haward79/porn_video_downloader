@@ -191,7 +191,7 @@ class WebDriver:
 
         return session
 
-    def to_cf_requests(self, visit_url: str | None = None) -> cf_requests.Session:
+    def to_cf_requests(self, visit_url: str | None = None) -> cf_requests.Session[cf_requests.Response]:
         if visit_url:
             try:
                 self.driver.get(visit_url)
@@ -202,7 +202,7 @@ class WebDriver:
 
         cookies = self.driver.get_cookies()
 
-        session = cf_requests.Session(impersonate='chrome146')
+        session: cf_requests.Session[cf_requests.Response] = cf_requests.Session(impersonate='chrome146')
 
         for cookie in cookies:
             session.cookies.set(
