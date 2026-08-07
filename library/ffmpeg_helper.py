@@ -5,7 +5,7 @@ from typing import Any
 import ffmpeg
 from ffmpeg.exceptions import FFMpegError, FFMpegExecuteError
 
-from library.log_helper import logger
+from library.log_helper import logger, stdout
 from library.util import make_oneline_error_message, make_request_header
 
 
@@ -44,7 +44,7 @@ def download_m3u8(
 
     try:
         if show_progress:
-            process = stream.run_async(pipe_stdout=True)
+            process = stream.run_async(pipe_stdout=True, pipe_stderr=True)
 
             if process.stdout is None:
                 raise FFMpegExecuteError(
@@ -65,7 +65,7 @@ def download_m3u8(
                 progress[key] = value
 
                 if key == 'progress':
-                    print('\rDownload Playlist: ' + str(progress), end='')
+                    stdout('\rDownload Playlist: ' + str(progress), end='')
                     logger().debug('Download Playlist: ' + str(progress))
 
             return_code = process.wait()
@@ -78,7 +78,7 @@ def download_m3u8(
                     stderr=b'ffmpeg has completed but returned non-zero code',
                 )
 
-            print('\rDownload Playlist: Complete')
+            stdout('\rDownload Playlist: Complete')
 
         else:
             stream.run()
