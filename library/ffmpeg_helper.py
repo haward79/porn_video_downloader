@@ -14,7 +14,7 @@ def ffmpeg_media_info(filepath: Path) -> Any:
         media_info_json = ffmpeg.probe(filepath)
 
     except FFMpegError as e:
-        logger().error(
+        logger().exception(
             'Error occurred during video file meta retrieving. ' +
             'Here is the error message. ' +
             make_oneline_error_message(str(e))
@@ -82,7 +82,7 @@ def download_m3u8(
             )
 
     except FFMpegError as e:
-        logger().error(
+        logger().exception(
             'Error occurred during m3u8 downloading. ' +
             'Here is the error message. ' +
             make_oneline_error_message(str(e))
