@@ -44,7 +44,7 @@ def remove_duplicated_url(urls: List[str]) -> List[str]:
 def extract_url_from_html_demo() -> None:
     print(f'Call function {BashColor.GREEN}extract_url_from_html', inspect.signature(extract_url_from_html), BashColor.CLEAR)
 
-    param_values = []
+    param_values: list[str] = []
 
     for param in inspect.signature(extract_url_from_html).parameters:
         param_values.append(input(f'Parameter {BashColor.GREEN}{param}{BashColor.CLEAR}: '))

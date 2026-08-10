@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from os import environ
 from pathlib import Path
 from time import sleep
-from typing import Type
+from typing import Iterable, Type, cast
 import curl_cffi
 from bs4 import BeautifulSoup
 from tqdm import tqdm
@@ -125,7 +125,10 @@ class DlBase(ABC):
             session.close()
             return ''
 
-        first_chunk_bytes = next(request.iter_content(chunk_size=REQUEST_CHUNK_SIZE))
+        first_chunk_bytes = cast(
+            bytes,
+            next(request.iter_content(chunk_size=REQUEST_CHUNK_SIZE))  # pyright: ignore[reportUnknownArgumentType, reportUnknownMemberType]
+        )
 
         request.close()
         session.close()
@@ -174,7 +177,10 @@ class DlBase(ABC):
                 ) as progress:
                     try:
                         # Download data for a chunk size at once.
-                        for slice_data in request.iter_content(chunk_size=REQUEST_CHUNK_SIZE):
+                        for slice_data in cast(
+                            Iterable[bytes],
+                            request.iter_content(chunk_size=REQUEST_CHUNK_SIZE)  # pyright: ignore[reportUnknownMemberType]
+                        ):
                             # Write chunk to disk.
                             fout.write(slice_data)
 

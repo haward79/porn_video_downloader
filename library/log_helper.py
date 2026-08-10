@@ -1,10 +1,16 @@
 
 import logging
 from pathlib import Path
+from typing import IO
 
 
-def stdout(*args, **kwargs) -> None:
-    print(*args, **kwargs, flush=True)
+def stdout(
+    *args: object,
+    sep: str | None = None,
+    end: str | None = None,
+    file: IO[str] | None = None,
+) -> None:
+    print(*args, sep=sep, end=end, file=file, flush=True)
 
 
 def logger() -> logging.Logger:

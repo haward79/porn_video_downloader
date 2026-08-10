@@ -21,7 +21,7 @@ class DlEightFive(DlBase):
             if video_element is None:
                 return None
 
-            video_url = video_element.get_attribute('src')
+            video_url = video_element.get_attribute('src')  # pyright: ignore[reportUnknownMemberType]
 
         if video_url is None:
             return None

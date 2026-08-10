@@ -1,10 +1,12 @@
 
 from time import sleep
+from types import TracebackType
+from typing import Any, cast
 from urllib.error import URLError
 from urllib.parse import urlparse
 import requests
 from curl_cffi import requests as cf_requests
-import undetected_chromedriver as uc
+import undetected_chromedriver as uc  # pyright: ignore[reportMissingTypeStubs]
 from selenium.common import NoSuchElementException, TimeoutException
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions
@@ -51,7 +53,12 @@ class WebDriver:
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ):
         self.quit()
 
     def _get_web_driver(self) -> uc.Chrome:
@@ -175,12 +182,12 @@ class WebDriver:
             except TimeoutException:
                 logger().error(f'Visiting "{visit_url}" timeout in to_requests()')
 
-        cookies = self.driver.get_cookies()
+        cookies = self.raw_cookies  # pyright: ignore[reportUnknownMemberType]
 
         session = requests.Session()
 
         for cookie in cookies:
-            session.cookies.set(
+            session.cookies.set(  # pyright: ignore[reportUnknownMemberType]
                 name=cookie['name'],
                 value=cookie['value'],
                 domain=cookie.get('domain'),
@@ -191,7 +198,7 @@ class WebDriver:
 
         return session
 
-    def to_cf_requests(self, visit_url: str | None = None) -> cf_requests.Session:
+    def to_cf_requests(self, visit_url: str | None = None) -> cf_requests.Session[cf_requests.Response]:
         if visit_url:
             try:
                 self.driver.get(visit_url)
@@ -200,9 +207,9 @@ class WebDriver:
 
         fallback_domain = (urlparse(visit_url).hostname or '') if visit_url else ''
 
-        cookies = self.driver.get_cookies()
+        cookies = self.raw_cookies
 
-        session = cf_requests.Session(impersonate='chrome146')
+        session: cf_requests.Session[cf_requests.Response] = cf_requests.Session(impersonate='chrome146')
 
         for cookie in cookies:
             session.cookies.set(
@@ -221,9 +228,16 @@ class WebDriver:
         return self._get_web_driver()
 
     @property
-    def cookies(self) -> dict:
-        return { c['name']: c['value'] for c in self.driver.get_cookies() }
+    def raw_cookies(self) -> list[dict[Any, Any]]:
+        return cast(list[dict[Any, Any]], self.driver.get_cookies())  # pyright: ignore[reportUnknownMemberType]
+
+    @property
+    def cookies(self) -> dict[Any, Any]:
+        return { c['name']: c['value'] for c in self.raw_cookies }
 
     @property
     def user_agent(self) -> str:
-        return self.driver.execute_script('return navigator.userAgent;')
+        return cast(
+            str,
+            self.driver.execute_script('return navigator.userAgent;')  # pyright: ignore[reportUnknownMemberType]
+        )
