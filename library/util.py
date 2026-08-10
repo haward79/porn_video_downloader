@@ -108,14 +108,10 @@ def get_unique_filepath(filepath: Path) -> Path:
 
 
 def format_url_list(urls: List[str]) -> List[str]:
-    urls = urls.copy()
-
-    for i in range(len(urls)):
-        if urls[i].endswith('\r\n') or urls[i].endswith('\n\r'):
-            urls[i] = urls[i][:-2]
-        elif urls[i].endswith('\r') or urls[i].endswith('\n'):
-            urls[i] = urls[i][:-1]
-
-    urls = list({url for url in urls if len(url) > 0})
-
-    return urls
+    return list(
+        dict.fromkeys(
+            url_stripped
+            for url in urls
+            if len(url_stripped := url.strip()) > 0
+        )
+    )
