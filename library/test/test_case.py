@@ -1,6 +1,6 @@
 
 from pathlib import Path
-from typing import List
+from typing import List, Any, cast
 import yaml
 
 from library.env_helper import env_get_str
@@ -31,6 +31,8 @@ class TestCase:
 
         if not isinstance(data, list):
             return []
+
+        data = cast(list[Any], data)
 
         for datum_index, datum in enumerate(data):
             if not isinstance(datum, dict):
